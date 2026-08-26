@@ -10,7 +10,7 @@
       "version": 1,
       "status": 1,
       "language": "tr",
-      "catalogUrl": "https://SUNUCUN/channels.json"
+      "catalogUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/channels.json"
     }
   ]
 }
