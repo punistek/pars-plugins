@@ -1,22 +1,11 @@
 {
   "channels": [
     {
-      "id": "test-1",
-      "name": "Test Kanal",
-      "group": "Test",
+      "id": "trt2",
+      "name": "TRT 2",
+      "group": "Türkiye",
       "logo": "",
       "url": "https://tv-trt2.medya.trt.com.tr/master_1080.m3u8",
-      "headers": {
-        "User-Agent": "Mozilla/5.0",
-        "Referer": "https://GEREKIYORSA/",
-        "Origin": "https://GEREKIYORSA"
-      }
-    },
-    {
-      "id": "dynamic-1",
-      "name": "Dinamik Test",
-      "group": "Test",
-      "resolveUrl": "https://SUNUCUN/resolve?id=dynamic-1",
       "headers": {}
     }
   ]
