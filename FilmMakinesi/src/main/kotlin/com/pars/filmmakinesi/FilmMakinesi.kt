@@ -417,14 +417,15 @@ class FilmMakinesi : MainAPI() {
                     found = true
 
                     callback(
-                        ExtractorLink(
+                        newExtractorLink(
                             source = name,
                             name = name,
                             url = link,
-                            referer = embedUrl,
-                            quality = Qualities.Unknown.value,
-                            isM3u8 = true
-                        )
+                            type = ExtractorLinkType.M3U8
+                        ) {
+                            this.referer = embedUrl
+                            this.quality = Qualities.Unknown.value
+                        }
                     )
                 }
 
@@ -451,7 +452,7 @@ class FilmMakinesi : MainAPI() {
     }
 
     // ------------------------------------------------------------
-    // YARDIMCILAR
+    // YARDIMCILARR
     // ------------------------------------------------------------
 
     private fun cleanTitle(raw: String): String {
