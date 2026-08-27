@@ -1,1 +1,44 @@
+name: Build PARS Plugins
 
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "FilmMakinesi/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
+      - "gradlew"
+      - ".github/workflows/build.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Build FilmMakinesi
+        run: ./gradlew :FilmMakinesi:make
+
+      - name: Show generated files
+        if: always()
+        run: |
+          echo "=== BUILD FILES ==="
+          find . -type f \( -name "*.cs3" -o -name "plugins.json" \) -print
