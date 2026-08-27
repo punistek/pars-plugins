@@ -1,5 +1,6 @@
 package com.pars.filmmakinesi
 
+import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
@@ -13,12 +14,26 @@ class FilmMakinesiRapidExtractor : ExtractorApi() {
         val pageReferer = referer ?: "https://filmmakinesi.to/"
         val pageHeaders = mapOf("User-Agent" to USER_AGENT, "Referer" to pageReferer)
 
-        val html = try { app.get(url, headers = pageHeaders).text } catch (_: Throwable) { return null }
+        val html = try {
+            app.get(url, headers = pageHeaders).text
+        } catch (e: Throwable) {
+            Log.e(TAG, "RAPID_FETCH_ERROR url=$url error=$e")
+            return null
+        }
+
+        Log.i(
+            TAG,
+            "RAPID_HTML url=$url len=${html.length} preview=" +
+                html.substring(0, minOf(1000, html.length)).replace("\n", " ")
+        )
+
         val decoded = decode(html)
         val candidates = LinkedHashSet<String>()
 
         collectCandidates(decoded, candidates)
         collectCandidates(decode(decoded), candidates)
+
+        Log.i(TAG, "RAPID_CANDIDATES_RAW count=${candidates.size} values=$candidates")
 
         val ordered = candidates
             .asSequence()
@@ -28,6 +43,8 @@ class FilmMakinesiRapidExtractor : ExtractorApi() {
             .sortedBy(::score)
             .toList()
 
+        Log.i(TAG, "RAPID_CANDIDATES_ORDERED count=${ordered.size} values=$ordered")
+
         for (stream in ordered) {
             val streamHeaders = mapOf(
                 "User-Agent" to USER_AGENT,
@@ -36,7 +53,10 @@ class FilmMakinesiRapidExtractor : ExtractorApi() {
                 "Accept" to "*/*"
             )
 
-            if (!isWorkingHls(stream, streamHeaders)) continue
+            val works = isWorkingHls(stream, streamHeaders)
+            Log.i(TAG, "RAPID_CHECK stream=$stream works=$works")
+
+            if (!works) continue
 
             return listOf(
                 newExtractorLink(
@@ -51,6 +71,7 @@ class FilmMakinesiRapidExtractor : ExtractorApi() {
             )
         }
 
+        Log.i(TAG, "RAPID_NO_WORKING_STREAM_FOUND")
         return null
     }
 
@@ -58,8 +79,14 @@ class FilmMakinesiRapidExtractor : ExtractorApi() {
         return try {
             val response = app.get(stream, headers = headers)
             val body = response.text.trimStart('\uFEFF', ' ', '\n', '\r', '\t')
+            Log.i(
+                TAG,
+                "RAPID_STREAM_CHECK url=$stream status=${response.code} " +
+                    "bodyPreview=" + body.substring(0, minOf(120, body.length))
+            )
             body.startsWith("#EXTM3U", ignoreCase = true)
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            Log.e(TAG, "RAPID_STREAM_CHECK_ERROR url=$stream error=$e")
             false
         }
     }
@@ -107,6 +134,7 @@ class FilmMakinesiRapidExtractor : ExtractorApi() {
         .trim('"', '\'', ')', ']', '}')
 
     companion object {
+        private const val TAG = "FM_RAPID"
         private const val USER_AGENT =
             "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
