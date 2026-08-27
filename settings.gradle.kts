@@ -19,4 +19,7 @@ dependencyResolutionManagement {
 rootProject.name = "PARS-Plugins"
 
 include(":FilmMakinesi")
-include(":FilmMakinesi")
+project(":FilmMakinesi").projectDir = file("FilmMakinesi")
+
+include(":FilmizleHell")
+project(":FilmizleHell").projectDir = file("FilmizleHell")
