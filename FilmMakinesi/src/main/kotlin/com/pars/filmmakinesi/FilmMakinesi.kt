@@ -1,5 +1,6 @@
 package com.pars.filmmakinesi
 
+import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Document
@@ -16,12 +17,6 @@ class FilmMakinesi : MainAPI() {
         TvType.Movie
     )
 
-    /*
-     * FilmMakinesi sitesindeki gerçek bölümler.
-     *
-     * İlk sürümde film tarafını sağlam kuruyoruz.
-     * Dizi/sezon/bölüm yapısını daha sonra aynı provider'a ekleyebiliriz.
-     */
     override val mainPage = mainPageOf(
         "$mainUrl/filmler-1/" to "Filmler",
         "$mainUrl/ulke/turkiye-fm4/" to "Yerli Filmler",
@@ -60,10 +55,6 @@ class FilmMakinesi : MainAPI() {
         )
     }
 
-    /**
-     * FilmMakinesi sayfalarında pagination yapısı değişse bile
-     * /page/N/ biçimini destekle.
-     */
     private fun pageUrl(baseUrl: String, page: Int): String {
         if (page <= 1) return baseUrl
 
@@ -74,13 +65,6 @@ class FilmMakinesi : MainAPI() {
         return "$clean/page/$page/"
     }
 
-    /**
-     * Site sınıf isimlerini değiştirse bile sadece "/film/" bağlantısı
-     * ve poster resmi olan gerçek içerikleri seçmeye çalışır.
-     *
-     * Önce yaygın kart selector'larını dener, sonuç yoksa güvenli fallback
-     * olarak film URL'si içeren posterli bağlantıları tarar.
-     */
     private fun parseMovieCards(document: Document): List<SearchResponse> {
         val result = LinkedHashMap<String, SearchResponse>()
 
@@ -102,7 +86,6 @@ class FilmMakinesi : MainAPI() {
             }
         }
 
-        // Fallback: FilmMakinesi film sayfaları /film/... şeklinde.
         document.select("a[href*='/film/']").forEach { anchor ->
             anchor.toMovieResultFromAnchor()?.let { response ->
                 result.putIfAbsent(response.url, response)
@@ -129,7 +112,6 @@ class FilmMakinesi : MainAPI() {
 
         val href = fixUrl(hrefRaw)
 
-        // Kategori / yardımcı sayfaları içerik sanma.
         if (!href.contains("/film/")) return null
 
         val root = container ?: parent() ?: this
@@ -191,10 +173,6 @@ class FilmMakinesi : MainAPI() {
             Charsets.UTF_8.name()
         )
 
-        /*
-         * FilmMakinesi'nin formu:
-         * action="/arama/" name="s"
-         */
         val base = "$mainUrl/arama/?s=$encoded"
 
         val url = if (page <= 1) {
@@ -286,7 +264,6 @@ class FilmMakinesi : MainAPI() {
         title: String
     ): Int? {
 
-        // Önce title / meta description içinden 4 haneli yılı bul.
         val text = buildString {
             append(title)
             append(" ")
@@ -347,14 +324,6 @@ class FilmMakinesi : MainAPI() {
             referer = mainUrl
         ).document
 
-        /*
-         * Motor City HTML'inde doğrulanan yapı:
-         *
-         * <div class="video-parts">
-         *   <a data-video_url="https://closeload...">Altyazılı Close</a>
-         *   <a data-video_url="https://rapid...">Altyazılı Rapid</a>
-         * </div>
-         */
         val embeds = LinkedHashSet<String>()
 
         document.select(
@@ -368,10 +337,6 @@ class FilmMakinesi : MainAPI() {
                 ?.let(embeds::add)
         }
 
-        /*
-         * Varsayılan iframe'i de ekle.
-         * FilmMakinesi HTML'inde iframe URL'si data-src içinde bulunabiliyor.
-         */
         document.select(
             ".after-player iframe, " +
                 ".player--area iframe, " +
@@ -393,23 +358,94 @@ class FilmMakinesi : MainAPI() {
             }
         }
 
+        Log.i(TAG, "FM_EMBEDS_FOUND count=${embeds.size} urls=$embeds")
+
         if (embeds.isEmpty()) {
             return false
         }
 
         var found = false
 
-        embeds.forEach { embedUrl ->
+        // Video kaynağı URL'sini yakalamak için kullanılan regex'ler.
+        // Sırayla: master.txt / m3u8 / doğrudan mp4 pattern'leri.
+        val masterTxtRegex = Regex(
+            """https?:\\?/\\?/[^\s"'\\]+?/master\.(txt|m3u8)[^\s"'\\]*"""
+        )
+        val m3u8Regex = Regex(
+            """https?:\\?/\\?/[^\s"'\\]+?\.m3u8[^\s"'\\]*"""
+        )
 
-            loadExtractor(
-                embedUrl,
-                data,
-                subtitleCallback
-            ) { link ->
-                found = true
-                callback(link)
+        embeds.forEach { embedUrl ->
+            try {
+                val response = app.get(
+                    embedUrl,
+                    referer = data,
+                    headers = mapOf(
+                        "Accept" to "text/html,application/xhtml+xml,*/*",
+                        "User-Agent" to
+                            "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 " +
+                            "(KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
+                    )
+                )
+
+                val rawText = response.text
+
+                Log.i(
+                    TAG,
+                    "FM_EMBED_FETCH url=$embedUrl status=${response.code} " +
+                        "len=${rawText.length} preview=" +
+                        rawText.substring(0, minOf(600, rawText.length))
+                            .replace("\n", " ")
+                )
+
+                val candidates = LinkedHashSet<String>()
+
+                masterTxtRegex.findAll(rawText).forEach {
+                    candidates.add(it.value.replace("\\/", "/"))
+                }
+                m3u8Regex.findAll(rawText).forEach {
+                    candidates.add(it.value.replace("\\/", "/"))
+                }
+
+                Log.i(
+                    TAG,
+                    "FM_EMBED_CANDIDATES url=$embedUrl found=${candidates.size} " +
+                        "links=$candidates"
+                )
+
+                candidates.forEach { link ->
+                    found = true
+
+                    callback(
+                        ExtractorLink(
+                            source = name,
+                            name = name,
+                            url = link,
+                            referer = embedUrl,
+                            quality = Qualities.Unknown.value,
+                            isM3u8 = true
+                        )
+                    )
+                }
+
+                // Regex hiçbir şey bulamadıysa, CloudStream'in kayıtlı
+                // extractor sistemini yedek olarak dene (varsa işe yarar).
+                if (candidates.isEmpty()) {
+                    loadExtractor(
+                        embedUrl,
+                        data,
+                        subtitleCallback
+                    ) { link ->
+                        found = true
+                        callback(link)
+                    }
+                }
+            } catch (error: Throwable) {
+                Log.e(TAG, "FM_EMBED_ERROR url=$embedUrl error=$error")
             }
         }
+
+        Log.i(TAG, "FM_LOAD_LINKS_RESULT found=$found")
 
         return found
     }
@@ -431,5 +467,9 @@ class FilmMakinesi : MainAPI() {
                 ""
             )
             .trim()
+    }
+
+    companion object {
+        private const val TAG = "FM_EXTRACT"
     }
 }
