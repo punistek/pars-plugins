@@ -4,17 +4,17 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
 class FilmMakinesiRapidExtractor : ExtractorApi() {
+
     override val name = "FilmMakinesi Rapid"
     override val mainUrl = "https://rapid.filmmakinesi.to"
     override val requiresReferer = true
 
     override suspend fun getUrl(
         url: String,
-        referer: String?,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ) {
+        referer: String?
+    ): List<ExtractorLink>? {
         val pageReferer = referer ?: "https://filmmakinesi.to/"
+
         val html = app.get(
             url,
             headers = mapOf(
@@ -27,12 +27,14 @@ class FilmMakinesiRapidExtractor : ExtractorApi() {
         val candidates = LinkedHashSet<String>()
 
         Regex(
-            """https?://[^\s\"'<>\\]+?\.m3u8[^\s\"'<>\\]*""",
+            """https?://[^\s"'<>\\]+?\.m3u8[^\s"'<>\\]*""",
             RegexOption.IGNORE_CASE
-        ).findAll(decoded).forEach { candidates.add(clean(it.value)) }
+        ).findAll(decoded).forEach {
+            candidates.add(clean(it.value))
+        }
 
         Regex(
-            """(?i)(?:file|src|source)\s*[:=]\s*[\"']([^\"']+)[\"']"""
+            """(?i)(?:file|src|source)\s*[:=]\s*["']([^"']+)["']"""
         ).findAll(decoded).forEach {
             val value = clean(it.groupValues[1])
             if (value.startsWith("http") && ".m3u8" in value.lowercase()) {
@@ -44,9 +46,9 @@ class FilmMakinesiRapidExtractor : ExtractorApi() {
             .filter { it.startsWith("http") }
             .distinct()
             .minByOrNull { score(it) }
-            ?: return
+            ?: return null
 
-        callback(
+        return listOf(
             newExtractorLink(
                 source = name,
                 name = name,
