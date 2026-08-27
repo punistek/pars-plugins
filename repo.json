@@ -1,16 +1,8 @@
 {
-  "name": "PARS Resmi Plugin Deposu",
-  "description": "PARS test deposu",
+  "name": "PARS Plugin Deposu",
+  "description": "PARS CloudStream Plugin Repository",
   "manifestVersion": 1,
-  "plugins": [
-    {
-      "id": "pars-test-live",
-      "name": "PARS Test Canlı",
-      "description": "Kendi yayınların için örnek plugin",
-      "version": 1,
-      "status": 1,
-      "language": "tr",
-      "catalogUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/channels.json"
-    }
+  "pluginLists": [
+    "https://raw.githubusercontent.com/punistek/pars-plugins/refs/heads/builds/plugins.json"
   ]
 }
