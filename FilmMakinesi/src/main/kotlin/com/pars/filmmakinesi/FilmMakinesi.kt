@@ -218,6 +218,12 @@ class FilmMakinesi : MainAPI() {
         )
     }
 
+    override suspend fun quickSearch(
+        query: String
+    ): List<SearchResponse>? {
+        return search(query, 1).list
+    }
+
     // ------------------------------------------------------------
     // FİLM DETAYI
     // ------------------------------------------------------------
