@@ -39,7 +39,7 @@ subprojects {
     cloudstream {
         setRepo(
             System.getenv("GITHUB_REPOSITORY")
-                ?: "https://github.com/punistek/pars-plugins"
+                ?: "punistek/pars-plugins"
         )
     }
 
@@ -60,14 +60,26 @@ subprojects {
         tasks.withType<KotlinJvmCompile> {
             compilerOptions {
                 jvmTarget.set(JvmTarget.JVM_1_8)
+                freeCompilerArgs.addAll(
+                    "-Xno-call-assertions",
+                    "-Xno-param-assertions",
+                    "-Xno-receiver-assertions"
+                )
             }
         }
     }
 
     dependencies {
-        val implementation by configurations
+        /*
+         * ÖNEMLİ:
+         * Plugin / registerMainAPI gibi CloudStream host sınıfları
+         * implementation library:-SNAPSHOT yerine "cloudstream"
+         * configuration üzerinden pre-release host API'den gelir.
+         */
+        val cloudstream by configurations
+        cloudstream("com.lagradost:cloudstream3:pre-release")
 
-        implementation("com.github.recloudstream.cloudstream:library:-SNAPSHOT")
+        val implementation by configurations
         implementation(kotlin("stdlib"))
         implementation("com.github.Blatzar:NiceHttp:0.4.11")
         implementation("org.jsoup:jsoup:1.18.3")
@@ -75,6 +87,6 @@ subprojects {
     }
 }
 
-task<Delete>("clean") {
+tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
