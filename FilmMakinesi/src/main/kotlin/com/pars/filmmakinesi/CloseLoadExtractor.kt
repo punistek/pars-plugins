@@ -4,17 +4,17 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
 class CloseLoadExtractor : ExtractorApi() {
+
     override val name = "FilmMakinesi Close"
     override val mainUrl = "https://closeload.filmmakinesi.to"
     override val requiresReferer = true
 
     override suspend fun getUrl(
         url: String,
-        referer: String?,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ) {
+        referer: String?
+    ): List<ExtractorLink>? {
         val pageReferer = referer ?: "https://filmmakinesi.to/"
+
         val html = app.get(
             url,
             headers = mapOf(
@@ -27,21 +27,26 @@ class CloseLoadExtractor : ExtractorApi() {
         val candidates = LinkedHashSet<String>()
 
         Regex(
-            """https?://[^\s\"'<>\\]+?(?:\.m3u8|master\.txt|playlist\.txt|index\.txt)[^\s\"'<>\\]*""",
+            """https?://[^\s"'<>\\]+?(?:\.m3u8|master\.txt|playlist\.txt|index\.txt)[^\s"'<>\\]*""",
             RegexOption.IGNORE_CASE
-        ).findAll(decoded).forEach { candidates.add(clean(it.value)) }
+        ).findAll(decoded).forEach {
+            candidates.add(clean(it.value))
+        }
 
         Regex(
-            """(?i)(?:file|src|source)\s*[:=]\s*[\"']([^\"']+)[\"']"""
+            """(?i)(?:file|src|source)\s*[:=]\s*["']([^"']+)["']"""
         ).findAll(decoded).forEach {
             val value = clean(it.groupValues[1])
             val lower = value.lowercase()
-            if (value.startsWith("http") && (
-                    lower.contains(".m3u8") ||
-                    lower.contains("master.txt") ||
-                    lower.contains("playlist.txt") ||
-                    lower.contains("index.txt")
-                )) {
+            if (
+                value.startsWith("http") &&
+                (
+                    ".m3u8" in lower ||
+                    "master.txt" in lower ||
+                    "playlist.txt" in lower ||
+                    "index.txt" in lower
+                )
+            ) {
                 candidates.add(value)
             }
         }
@@ -50,9 +55,9 @@ class CloseLoadExtractor : ExtractorApi() {
             .filter { it.startsWith("http") }
             .distinct()
             .minByOrNull { score(it) }
-            ?: return
+            ?: return null
 
-        callback(
+        return listOf(
             newExtractorLink(
                 source = name,
                 name = name,
