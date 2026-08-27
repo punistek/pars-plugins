@@ -5,8 +5,7 @@ import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
 class FilmMakinesiPlugin : Plugin() {
-
-    override fun load(context: android.content.Context) {
+    override fun load() {
         registerMainAPI(FilmMakinesi())
     }
 }
