@@ -19,3 +19,4 @@ dependencyResolutionManagement {
 rootProject.name = "PARS-Plugins"
 
 include(":FilmMakinesi")
+include(":FilmMakinesi")
