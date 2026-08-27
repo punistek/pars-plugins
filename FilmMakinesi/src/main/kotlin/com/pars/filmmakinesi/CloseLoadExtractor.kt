@@ -13,57 +13,61 @@ class CloseLoadExtractor : ExtractorApi() {
     override suspend fun getUrl(url: String, referer: String?): List<ExtractorLink>? {
         val pageReferer = referer ?: "https://filmmakinesi.to/"
 
-        // Gercek video linki HTML'de duz metin olarak bulunmuyor,
-        // JS calistiginda ag istegi olarak olusuyor.
-        // WebViewResolver gercek bir WebView'da sayfayi acar, JS'i calistirir
-        // ve pattern'e uyan ag istegini yakalar.
-        val resolver = WebViewResolver(
-            interceptUrl = Regex("""\.m3u8|master\.txt|playlist\.txt|index\.txt"""),
-            additionalUrls = listOf(),
-            useOkhttp = false,
-            timeout = 20_000L
-        )
-
-        val response = try {
+        val html = try {
             app.get(
                 url,
                 referer = pageReferer,
-                headers = mapOf("User-Agent" to USER_AGENT),
-                interceptor = resolver
-            )
+                headers = mapOf("User-Agent" to USER_AGENT)
+            ).text
         } catch (e: Throwable) {
-            Log.e(TAG, "CLOSE_WEBVIEW_ERROR url=$url error=$e")
+            Log.e(TAG, "CLOSE_FETCH_ERROR url=$url error=$e")
             return null
         }
 
-        val finalUrl = response.url
+        Log.i(TAG, "CLOSE_HTML_FULL_LEN url=$url len=${html.length}")
 
-        Log.i(TAG, "CLOSE_WEBVIEW_RESULT requested=$url intercepted=$finalUrl")
-
-        if (finalUrl.isBlank() || finalUrl == url) {
-            Log.i(TAG, "CLOSE_WEBVIEW_NO_MATCH")
-            return null
-        }
-
-        val streamHeaders = mapOf(
-            "User-Agent" to USER_AGENT,
-            "Referer" to url,
-            "Origin" to mainUrl,
-            "Accept" to "*/*"
+        // AJAX/API cagrisi olabilecek anahtar kelimeleri ara ve
+        // etrafindaki metni logla. Boylece JS'in nereden veri
+        // cektigini gorebiliriz.
+        val keywords = listOf(
+            "ajax", "fetch(", "xhr.open", "XMLHttpRequest",
+            "\$.get", "\$.post", "getSource", "get_source",
+            "load_data", "loadSource", "player.setup",
+            "sources:", "file:", "playerInstance", "jwplayer"
         )
 
-        return listOf(
-            newExtractorLink(
-                source = name,
-                name = name,
-                url = finalUrl,
-                type = ExtractorLinkType.M3U8
-            ) {
-                headers = streamHeaders
-                quality = Qualities.Unknown.value
+        keywords.forEach { keyword ->
+            var searchFrom = 0
+            var found = 0
+            while (found < 3) {
+                val idx = html.indexOf(keyword, searchFrom, ignoreCase = true)
+                if (idx == -1) break
+                val start = maxOf(0, idx - 60)
+                val end = minOf(html.length, idx + 200)
+                val context = html.substring(start, end).replace("\n", " ")
+                Log.i(TAG, "CLOSE_KEYWORD keyword=$keyword context=$context")
+                searchFrom = idx + keyword.length
+                found++
             }
-        )
+        }
+
+        // Onceki regex denemesi de kalsin, karsilastirma icin.
+        val candidates = LinkedHashSet<String>()
+        Regex(
+            """https?://[^\s\"'<>\\]+?(?:\.m3u8|master\.txt|playlist\.txt|index\.txt)[^\s\"'<>\\]*""",
+            RegexOption.IGNORE_CASE
+        ).findAll(html).forEach { candidates.add(clean(it.value)) }
+
+        Log.i(TAG, "CLOSE_M3U8_CANDIDATES count=${candidates.size} values=$candidates")
+
+        return null
     }
+
+    private fun clean(value: String): String = value
+        .replace("\\/", "/")
+        .replace("\\", "")
+        .trim()
+        .trim('"', '\'', ')', ']', '}')
 
     companion object {
         private const val TAG = "FM_CLOSE"
