@@ -26,7 +26,7 @@ class CloseLoadExtractor : ExtractorApi() {
 
         Log.i(TAG, "CLOSE_HTML_FULL_LEN url=$url len=${html.length}")
 
-        // AJAX/API cagrisi olabilecek anahtar kelimeleri ara ve
+        // AJAX/API cagrisi olabilecek anahtar kelimeleri ara vee
         // etrafindaki metni logla. Boylece JS'in nereden veri
         // cektigini gorebiliriz.
         val keywords = listOf(
