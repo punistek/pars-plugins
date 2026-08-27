@@ -12,6 +12,7 @@ on:
       - "gradle.properties"
       - "gradle/**"
       - "gradlew"
+      - "gradlew.bat"
       - ".github/workflows/build.yml"
 
 permissions:
@@ -24,6 +25,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -34,11 +37,44 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x ./gradlew
 
-      - name: Build FilmMakinesi
-        run: ./gradlew :FilmMakinesi:make
+      - name: Build FilmMakinesi and plugins.json
+        run: ./gradlew :FilmMakinesi:make makePluginsJson
 
-      - name: Show generated files
-        if: always()
+      - name: Verify generated files
         run: |
-          echo "=== BUILD FILES ==="
+          echo "=== GENERATED FILES ==="
           find . -type f \( -name "*.cs3" -o -name "plugins.json" \) -print
+
+          test -f FilmMakinesi/build/FilmMakinesi.cs3
+          test -f build/plugins.json
+
+      - name: Prepare builds branch files
+        run: |
+          rm -rf /tmp/pars-builds
+          mkdir -p /tmp/pars-builds
+
+          cp FilmMakinesi/build/FilmMakinesi.cs3 /tmp/pars-builds/FilmMakinesi.cs3
+          cp build/plugins.json /tmp/pars-builds/plugins.json
+
+          echo "=== PUBLISH CONTENT ==="
+          ls -lah /tmp/pars-builds
+
+      - name: Publish to builds branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout --orphan builds-publish
+          git rm -rf . || true
+          git clean -fdx
+
+          cp -a /tmp/pars-builds/. .
+
+          git add FilmMakinesi.cs3 plugins.json
+          git commit -m "Build FilmMakinesi ${GITHUB_SHA::7}"
+
+          git push --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:builds
