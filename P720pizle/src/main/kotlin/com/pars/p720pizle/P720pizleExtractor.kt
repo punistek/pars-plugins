@@ -31,12 +31,22 @@ class P720pizleExtractor : ExtractorApi() {
     override suspend fun getUrl(url:String,referer:String?):List<ExtractorLink>? {
         val pageReferer = referer ?: "https://720izle.com/"
 
-        val html = try {
-            app.get(url, referer = pageReferer, headers = mapOf("User-Agent" to USER_AGENT)).text
+        val response = try {
+            app.get(url, referer = pageReferer, headers = mapOf("User-Agent" to USER_AGENT))
         } catch (e: Throwable) {
             Log.e(TAG, "FETCH_ERROR url=$url error=$e")
             return null
         }
+        val html = response.text
+
+        // ONEMLI: /list/{token} gibi video linkleri, embed sayfasini cekerken
+        // sunucunun verdigi oturum cerezine (orn. PHPSESSID) bagli olabiliyor.
+        // Bu cerezi yakalayip video linkine EKLEMEZSEK sunucu "gecersiz oturum"
+        // diyerek 404/Video Not Found donuyor - cerezsiz istek, sifre cozme
+        // dogru olsa bile calismiyor.
+        val sessionCookie = try {
+            response.cookies.entries.joinToString("; ") { (k, v) -> "$k=$v" }
+        } catch (e: Throwable) { "" }
 
         val match = BEPLAYER_RX.find(html) ?: run {
             Log.i(TAG, "NO_BEPLAYER_CALL url=$url")
@@ -61,6 +71,7 @@ class P720pizleExtractor : ExtractorApi() {
         } ?: return null
 
         val isM3u8 = videoLocation.contains(".m3u8", ignoreCase = true)
+        Log.i(TAG, "VIDEO_LOCATION url=$videoLocation cookie=${sessionCookie.isNotBlank()}")
 
         return listOf(
             newExtractorLink(
@@ -71,6 +82,12 @@ class P720pizleExtractor : ExtractorApi() {
             ) {
                 this.referer = url
                 this.quality = Qualities.Unknown.value
+                if (sessionCookie.isNotBlank()) {
+                    this.headers = mapOf(
+                        "User-Agent" to USER_AGENT,
+                        "Cookie" to sessionCookie
+                    )
+                }
             }
         )
     }
