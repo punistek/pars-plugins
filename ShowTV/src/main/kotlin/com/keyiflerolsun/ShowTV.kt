@@ -1,6 +1,6 @@
 package com.keyiflerolsun
 
-// FIXED_FOR_PARS_CLOUDSTREAM_20260828_V2_NEW_API
+// FIXED_FOR_PARS_CLOUDSTREAM_20260828_V3_FULL_SEASONS
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.lagradost.cloudstream3.*
@@ -10,7 +10,7 @@ import org.jsoup.nodes.Element
 
 class ShowTV : MainAPI() {
 
-    private val buildFixTag = "PARS-SHOWTV-FIX-20260828-V2-NEW-API"
+    private val buildFixTag = "PARS-SHOWTV-FIX-20260828-V3-FULL-SEASONS"
 
     override var mainUrl = "https://www.showtv.com.tr"
     override var name = "Show TV"
@@ -104,32 +104,48 @@ class ShowTV : MainAPI() {
         val plot = extractMeta(document, "meta[name=description]", "content")
             ?: extractMeta(document, "meta[property=og:description]", "content")
 
-        val episodes = parseEpisodes(document)
+        val seriesSlug = extractSeriesSlug(url)
+            ?: return null
 
-        // Bazı tanıtım sayfalarında bölüm listesi eksik/tembel yüklenmiş olabilir.
-        // "Son Bölüm" veya başka bir bölüm bağlantısı varsa o sayfaya geçip
-        // bütün bölüm kartlarını tekrar toplamayı dene.
-        val finalEpisodes = if (episodes.isNotEmpty()) {
-            episodes
+        /*
+         * ÖNEMLİ:
+         * Tanıtım sayfası sadece son birkaç bölümü server-side gösteriyor.
+         * Buna karşılık gerçek bir bölüm sayfasındaki "BÖLÜMLER / Tüm Bölümler"
+         * alanı dizinin tüm sezon/bölüm bağlantılarını içeriyor.
+         *
+         * Bu yüzden önce SADECE bu diziye ait ilk gerçek bölüm URL'sini buluyoruz,
+         * sonra o bölüm sayfasını açıp bütün sezonları oradan topluyoruz.
+         */
+        val seedEpisodeUrl = document
+            .select("a[href*=/dizi/tum_bolumler/]")
+            .mapNotNull { it.attr("href").takeIf(String::isNotBlank) }
+            .map(::absoluteUrl)
+            .firstOrNull { isEpisodeOfSeries(it, seriesSlug) }
+
+        val episodes = if (seedEpisodeUrl != null) {
+            val episodeDocument = app.get(
+                seedEpisodeUrl,
+                headers = defaultHeaders(referer = url)
+            ).document
+
+            parseEpisodes(
+                document = episodeDocument,
+                seriesSlug = seriesSlug,
+                seriesTitle = title
+            )
         } else {
-            val episodeUrl = document
-                .selectFirst("a[href*=/dizi/tum_bolumler/]")
-                ?.attr("href")
-                ?.let(::absoluteUrl)
-
-            if (episodeUrl != null) {
-                val episodeDocument = app.get(
-                    episodeUrl,
-                    headers = defaultHeaders(referer = url)
-                ).document
-                parseEpisodes(episodeDocument)
-            } else {
-                emptyList()
-            }
+            // Çok eski/özel bir dizide bölüm linki bulunamazsa son çare tanıtım sayfası.
+            parseEpisodes(
+                document = document,
+                seriesSlug = seriesSlug,
+                seriesTitle = title
+            )
         }
 
-        val cloudEpisodes = finalEpisodes.map { item ->
+        val cloudEpisodes = episodes.map { item ->
             newEpisode(item.url) {
+                // CloudStream bölüm numarasını zaten ayrıca gösteriyor.
+                // İsme tekrar "129. Bölüm" yazıp çift numara üretmiyoruz.
                 this.name = item.title
                 this.season = item.season
                 this.episode = item.episode
@@ -319,7 +335,11 @@ class ShowTV : MainAPI() {
         return result.values.toList()
     }
 
-    private fun parseEpisodes(document: Document): List<EpisodeCard> {
+    private fun parseEpisodes(
+        document: Document,
+        seriesSlug: String,
+        seriesTitle: String
+    ): List<EpisodeCard> {
         val result = LinkedHashMap<String, EpisodeCard>()
 
         document
@@ -331,33 +351,66 @@ class ShowTV : MainAPI() {
 
                 val url = absoluteUrl(href)
 
+                // Başka dizilerin header/promo/öneri linklerini kesin olarak dışarıda bırak.
+                if (!isEpisodeOfSeries(url, seriesSlug)) {
+                    return@forEach
+                }
+
                 val parsed = parseSeasonEpisode(url)
+                val seasonNumber = parsed.first
+                val episodeNumber = parsed.second
 
-                val title = anchor.attr("title")
+                // Normal bölüm olmayan özel sayfaları, numara yoksa listeye eklemiyoruz.
+                // Böylece sezonlar CloudStream'da yanlış "Sezon 1" altında toplanmıyor.
+                if (seasonNumber == null || episodeNumber == null) {
+                    return@forEach
+                }
+
+                val rawTitle = anchor.attr("title")
                     .trim()
-                    .ifBlank {
-                        when {
-                            parsed.second != null -> "${parsed.second}. Bölüm"
-                            else -> anchor.text().trim()
-                        }
-                    }
-                    .ifBlank { "Bölüm" }
+                    .ifBlank { anchor.text().trim() }
 
-                val scope = anchor.closest("li, article, figure, div") ?: anchor
+                // CloudStream kendi episode alanını gösterdiği için
+                // "129. Kızılcık Şerbeti 129. Bölüm" gibi tekrar oluşmasın.
+                val cleanTitle = cleanEpisodeName(
+                    rawTitle = rawTitle,
+                    seriesTitle = seriesTitle,
+                    episodeNumber = episodeNumber
+                )
 
-                val poster = (
-                    anchor.selectFirst("img")
-                        ?: scope.selectFirst("img")
-                    )
-                    ?.let(::imageUrl)
+                val scope = anchor.closest(
+                    "li, article, figure, [data-name], .item, .card, .video-item, div"
+                ) ?: anchor
 
-                result[url] = EpisodeCard(
-                    title = title,
+                val poster = sequenceOf(
+                    anchor.selectFirst("img"),
+                    scope.selectFirst("img")
+                )
+                    .filterNotNull()
+                    .mapNotNull(::imageUrl)
+                    .firstOrNull()
+
+                val candidate = EpisodeCard(
+                    title = cleanTitle,
                     url = url,
                     poster = poster,
-                    season = parsed.first,
-                    episode = parsed.second
+                    season = seasonNumber,
+                    episode = episodeNumber
                 )
+
+                val old = result[url]
+
+                // Aynı bölüm sayfada birden çok kez bulunabilir:
+                // üst menüde postersiz, aşağıdaki kartta posterli.
+                // Posterli/iyi kaydı tercih et.
+                result[url] = when {
+                    old == null -> candidate
+                    old.poster.isNullOrBlank() && !candidate.poster.isNullOrBlank() ->
+                        candidate
+                    old.title.isBlank() && candidate.title.isNotBlank() ->
+                        candidate
+                    else -> old
+                }
             }
 
         return result.values
@@ -367,6 +420,60 @@ class ShowTV : MainAPI() {
                     { it.episode ?: 0 }
                 )
             )
+    }
+
+    private fun extractSeriesSlug(url: String): String? {
+        return Regex(
+            """/dizi/tanitim/([^/?#]+)/?""",
+            RegexOption.IGNORE_CASE
+        ).find(url)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    private fun isEpisodeOfSeries(
+        episodeUrl: String,
+        seriesSlug: String
+    ): Boolean {
+        return Regex(
+            """/dizi/tum_bolumler/${Regex.escape(seriesSlug)}(?:-|/)""",
+            RegexOption.IGNORE_CASE
+        ).containsMatchIn(episodeUrl)
+    }
+
+    private fun cleanEpisodeName(
+        rawTitle: String,
+        seriesTitle: String,
+        episodeNumber: Int
+    ): String {
+        var value = rawTitle
+            .replace(Regex("""^\s*Alt\s*Yazılı\s*""", RegexOption.IGNORE_CASE), "")
+            .trim()
+
+        value = value
+            .replace(
+                Regex(
+                    """^\s*${Regex.escape(seriesTitle)}\s*""",
+                    RegexOption.IGNORE_CASE
+                ),
+                ""
+            )
+            .trim()
+
+        value = value
+            .replace(
+                Regex(
+                    """^\s*${episodeNumber}\.?\s*Bölüm\s*""",
+                    RegexOption.IGNORE_CASE
+                ),
+                ""
+            )
+            .trim()
+
+        // Boş kalırsa CloudStream için sade başlık kullan.
+        return value.ifBlank { "Bölüm" }
     }
 
     private fun parseSeasonEpisode(url: String): Pair<Int?, Int?> {
