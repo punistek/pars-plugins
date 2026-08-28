@@ -1,11 +1,16 @@
 package com.keyiflerolsun
 
+// FIXED_FOR_PARS_CLOUDSTREAM_20260828
+
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
 class ShowTV : MainAPI() {
+
+    private val buildFixTag = "PARS-SHOWTV-FIX-20260828"
 
     override var mainUrl = "https://www.showtv.com.tr"
     override var name = "Show TV"
@@ -167,7 +172,11 @@ class ShowTV : MainAPI() {
             .orEmpty()
 
         if (configRaw.isNotBlank()) {
-            val config = tryParseJson<HopeVideoConfig>(configRaw)
+            val config = try {
+                jacksonObjectMapper().readValue(configRaw, HopeVideoConfig::class.java)
+            } catch (_: Exception) {
+                null
+            }
 
             config?.media?.m3u8.orEmpty().forEach { stream ->
                 val streamUrl = stream.src
@@ -199,7 +208,8 @@ class ShowTV : MainAPI() {
                 subtitleCallback.invoke(
                     SubtitleFile(
                         sub.label?.ifBlank { "Türkçe" } ?: "Türkçe",
-                        subtitleUrl
+                        subtitleUrl,
+                        defaultHeaders(referer = data)
                     )
                 )
             }
