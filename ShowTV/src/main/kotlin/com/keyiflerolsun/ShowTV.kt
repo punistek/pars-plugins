@@ -1,6 +1,6 @@
 package com.keyiflerolsun
 
-// FIXED_FOR_PARS_CLOUDSTREAM_20260828_V4_SOCIAL_FILTER
+// FIXED_FOR_PARS_CLOUDSTREAM_20260828_V5_POSTER_DEDUP
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.lagradost.cloudstream3.*
@@ -10,7 +10,7 @@ import org.jsoup.nodes.Element
 
 class ShowTV : MainAPI() {
 
-    private val buildFixTag = "PARS-SHOWTV-FIX-20260828-V4-SOCIAL-FILTER"
+    private val buildFixTag = "PARS-SHOWTV-FIX-20260828-V5-POSTER-DEDUP"
 
     override var mainUrl = "https://www.showtv.com.tr"
     override var name = "Show TV"
@@ -325,11 +325,25 @@ class ShowTV : MainAPI() {
                     )
                     ?.let(::imageUrl)
 
-                result[url] = SeriesCard(
+                val candidate = SeriesCard(
                     title = title,
                     url = url,
                     poster = poster
                 )
+
+                val old = result[url]
+
+                // Aynı dizi sayfada birden fazla yerde bulunabiliyor.
+                // İlk kart posterli, sonraki menü/slider kaydı postersiz olursa
+                // posterli kaydı asla ezme.
+                result[url] = when {
+                    old == null -> candidate
+                    old.poster.isNullOrBlank() && !candidate.poster.isNullOrBlank() ->
+                        candidate
+                    old.title.isBlank() && candidate.title.isNotBlank() ->
+                        candidate
+                    else -> old
+                }
             }
 
         return result.values.toList()
