@@ -1,6 +1,6 @@
 package com.keyiflerolsun
 
-// FIXED_FOR_PARS_CLOUDSTREAM_20260828_V3_FULL_SEASONS
+// FIXED_FOR_PARS_CLOUDSTREAM_20260828_V4_SOCIAL_FILTER
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.lagradost.cloudstream3.*
@@ -10,7 +10,7 @@ import org.jsoup.nodes.Element
 
 class ShowTV : MainAPI() {
 
-    private val buildFixTag = "PARS-SHOWTV-FIX-20260828-V3-FULL-SEASONS"
+    private val buildFixTag = "PARS-SHOWTV-FIX-20260828-V4-SOCIAL-FILTER"
 
     override var mainUrl = "https://www.showtv.com.tr"
     override var name = "Show TV"
@@ -117,7 +117,7 @@ class ShowTV : MainAPI() {
          * sonra o bölüm sayfasını açıp bütün sezonları oradan topluyoruz.
          */
         val seedEpisodeUrl = document
-            .select("a[href*=/dizi/tum_bolumler/]")
+            .select("a[href^=/dizi/tum_bolumler/], a[href^=https://www.showtv.com.tr/dizi/tum_bolumler/], a[href^=http://www.showtv.com.tr/dizi/tum_bolumler/]")
             .mapNotNull { it.attr("href").takeIf(String::isNotBlank) }
             .map(::absoluteUrl)
             .firstOrNull { isEpisodeOfSeries(it, seriesSlug) }
@@ -343,7 +343,7 @@ class ShowTV : MainAPI() {
         val result = LinkedHashMap<String, EpisodeCard>()
 
         document
-            .select("a[href*=/dizi/tum_bolumler/]")
+            .select("a[href^=/dizi/tum_bolumler/], a[href^=https://www.showtv.com.tr/dizi/tum_bolumler/], a[href^=http://www.showtv.com.tr/dizi/tum_bolumler/]")
             .forEach { anchor ->
                 val href = anchor.attr("href")
                     .takeIf { it.isNotBlank() }
@@ -437,10 +437,25 @@ class ShowTV : MainAPI() {
         episodeUrl: String,
         seriesSlug: String
     ): Boolean {
+        val uri = runCatching {
+            java.net.URI(episodeUrl)
+        }.getOrNull() ?: return false
+
+        val host = uri.host
+            ?.lowercase()
+            ?.removePrefix("www.")
+            ?: return false
+
+        if (host != "showtv.com.tr") {
+            return false
+        }
+
+        val path = uri.path.orEmpty()
+
         return Regex(
-            """/dizi/tum_bolumler/${Regex.escape(seriesSlug)}(?:-|/)""",
+            """^/dizi/tum_bolumler/${Regex.escape(seriesSlug)}(?:-|/)""",
             RegexOption.IGNORE_CASE
-        ).containsMatchIn(episodeUrl)
+        ).containsMatchIn(path)
     }
 
     private fun cleanEpisodeName(
