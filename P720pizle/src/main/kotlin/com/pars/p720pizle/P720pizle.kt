@@ -28,6 +28,26 @@ class P720pizle : MainAPI() {
         return newHomePageResponse(request.name,parseCards(doc))
     }
 
+    private fun pickImageUrl(img: org.jsoup.nodes.Element?): String? {
+        if (img == null) return null
+        // Siteler poster'i farkli lazy-load ozniteliklerinde tutabiliyor
+        // (data-src, data-lazy-src, data-original, srcset, ya da duz src).
+        // Hepsini sirayla dene, ilk dolu olani kullan.
+        val candidates = listOf(
+            img.attr("data-src"),
+            img.attr("data-lazy-src"),
+            img.attr("data-original"),
+            img.attr("data-lazy"),
+            img.attr("data-echo"),
+            img.attr("srcset").substringBefore(" "),
+            img.attr("src")
+        )
+        val raw = candidates.firstOrNull {
+            it.isNotBlank() && !it.startsWith("data:image")
+        } ?: return null
+        return fixUrl(raw)
+    }
+
     private fun parseCards(doc:Document):List<SearchResponse> {
         val out=LinkedHashMap<String,SearchResponse>()
         doc.select("a[href]").forEach { a ->
@@ -36,7 +56,7 @@ class P720pizle : MainAPI() {
             val img=a.selectFirst("img") ?: a.parent()?.selectFirst("img")
             val title=(a.attr("aria-label").ifBlank { a.text() }.ifBlank { img?.attr("alt").orEmpty() }).trim()
             if(title.isBlank()) return@forEach
-            out[href]=newMovieSearchResponse(title,href,TvType.Movie){ posterUrl=img?.attr("data-src")?.ifBlank{img.attr("src")}?.let(::fixUrl) }
+            out[href]=newMovieSearchResponse(title,href,TvType.Movie){ posterUrl=pickImageUrl(img) }
         }
         return out.values.toList()
     }
