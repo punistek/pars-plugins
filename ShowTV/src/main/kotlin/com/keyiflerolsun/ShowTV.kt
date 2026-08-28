@@ -1,6 +1,6 @@
 package com.keyiflerolsun
 
-// FIXED_FOR_PARS_CLOUDSTREAM_20260828
+// FIXED_FOR_PARS_CLOUDSTREAM_20260828_V2_NEW_API
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.lagradost.cloudstream3.*
@@ -10,7 +10,7 @@ import org.jsoup.nodes.Element
 
 class ShowTV : MainAPI() {
 
-    private val buildFixTag = "PARS-SHOWTV-FIX-20260828"
+    private val buildFixTag = "PARS-SHOWTV-FIX-20260828-V2-NEW-API"
 
     override var mainUrl = "https://www.showtv.com.tr"
     override var name = "Show TV"
@@ -186,14 +186,16 @@ class ShowTV : MainAPI() {
                     ?: return@forEach
 
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = name,
                         name = stream.label?.ifBlank { name } ?: name,
                         url = streamUrl,
-                        referer = data,
-                        quality = Qualities.Unknown.value,
-                        type = INFER_TYPE
-                    )
+                        type = ExtractorLinkType.M3U8
+                    ) {
+                        referer = data
+                        quality = Qualities.Unknown.value
+                        headers = defaultHeaders(referer = data)
+                    }
                 )
                 found = true
             }
@@ -206,11 +208,12 @@ class ShowTV : MainAPI() {
                     ?: return@forEach
 
                 subtitleCallback.invoke(
-                    SubtitleFile(
-                        sub.label?.ifBlank { "Türkçe" } ?: "Türkçe",
-                        subtitleUrl,
-                        defaultHeaders(referer = data)
-                    )
+                    newSubtitleFile(
+                        lang = sub.label?.ifBlank { "Türkçe" } ?: "Türkçe",
+                        url = subtitleUrl
+                    ) {
+                        headers = defaultHeaders(referer = data)
+                    }
                 )
             }
         }
@@ -231,14 +234,16 @@ class ShowTV : MainAPI() {
 
             urls.forEachIndexed { index, streamUrl ->
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = name,
                         name = if (urls.size == 1) name else "$name ${index + 1}",
                         url = streamUrl,
-                        referer = data,
-                        quality = Qualities.Unknown.value,
-                        type = INFER_TYPE
-                    )
+                        type = ExtractorLinkType.M3U8
+                    ) {
+                        referer = data
+                        quality = Qualities.Unknown.value
+                        headers = defaultHeaders(referer = data)
+                    }
                 )
                 found = true
             }
@@ -255,14 +260,16 @@ class ShowTV : MainAPI() {
 
             if (!mp4.isNullOrBlank()) {
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = name,
                         name = "$name MP4",
                         url = mp4,
-                        referer = data,
-                        quality = Qualities.Unknown.value,
-                        type = INFER_TYPE
-                    )
+                        type = ExtractorLinkType.VIDEO
+                    ) {
+                        referer = data
+                        quality = Qualities.Unknown.value
+                        headers = defaultHeaders(referer = data)
+                    }
                 )
                 found = true
             }
