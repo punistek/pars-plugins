@@ -6,6 +6,7 @@ pluginManagement {
         maven("https://jitpack.io")
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
     repositories {
@@ -14,8 +15,14 @@ dependencyResolutionManagement {
         maven("https://jitpack.io")
     }
 }
+
 rootProject.name = "PARS-Plugins"
+
 include(":FilmMakinesi")
 project(":FilmMakinesi").projectDir = file("FilmMakinesi")
+
 include(":FilmizleHell")
 project(":FilmizleHell").projectDir = file("FilmizleHell")
+
+include(":ShowTV")
+project(":ShowTV").projectDir = file("ShowTV")
