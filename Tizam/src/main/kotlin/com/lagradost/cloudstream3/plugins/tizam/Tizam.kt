@@ -1,5 +1,7 @@
 package com.lagradost.cloudstream3.plugins.tizam
 
+// PARS_TIZAM_FIX_V2
+
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
@@ -95,7 +97,8 @@ class Tizam : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/search-results/?search_string=${query.encodeUrl()}"
+        val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+        val url = "$mainUrl/search-results/?search_string=$encoded"
         val document = app.get(url, headers = headers).document
 
         return document.select(
@@ -172,7 +175,7 @@ class Tizam : MainAPI() {
 
             val type = source.attr("type").lowercase()
             val resText = source.attr("data-res").trim()
-            val quality = resText.toIntOrNull() ?: Qualities.Unknown.value
+            val quality = resText.toIntOrNull() ?: 0
 
             val linkType = when {
                 type.contains("mpegurl") ||
