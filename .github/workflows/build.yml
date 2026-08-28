@@ -7,7 +7,6 @@ on:
     paths:
       - "FilmMakinesi/**"
       - "FilmizleHell/**"
-      - "P720pizle/**"
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"
@@ -33,14 +32,13 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x ./gradlew
       - name: Build plugins and plugins.json
-        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make :P720pizle:make makePluginsJson --refresh-dependencies
+        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make makePluginsJson --refresh-dependencies
       - name: Verify generated files
         run: |
           echo "=== GENERATED FILES ==="
           find . -type f \( -name "*.cs3" -o -name "plugins.json" \) -print
           test -f FilmMakinesi/build/FilmMakinesi.cs3
           test -f FilmizleHell/build/FilmizleHell.cs3
-          test -f P720pizle/build/P720pizle.cs3
           test -f build/plugins.json
       - name: Prepare builds branch files
         run: |
@@ -48,7 +46,6 @@ jobs:
           mkdir -p /tmp/pars-builds
           cp FilmMakinesi/build/FilmMakinesi.cs3 /tmp/pars-builds/FilmMakinesi.cs3
           cp FilmizleHell/build/FilmizleHell.cs3 /tmp/pars-builds/FilmizleHell.cs3
-          cp P720pizle/build/P720pizle.cs3 /tmp/pars-builds/P720pizle.cs3
           cp build/plugins.json /tmp/pars-builds/plugins.json
           echo "=== PUBLISH CONTENT ==="
           ls -lah /tmp/pars-builds
@@ -62,7 +59,7 @@ jobs:
           git rm -rf . || true
           git clean -fdx
           cp -a /tmp/pars-builds/. .
-          git add FilmMakinesi.cs3 FilmizleHell.cs3 P720pizle.cs3 plugins.json
+          git add FilmMakinesi.cs3 FilmizleHell.cs3 plugins.json
           git commit -m "Build plugins ${GITHUB_SHA::7}"
           git push --force \
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
