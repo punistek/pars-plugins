@@ -1,11 +1,13 @@
 package com.pars.plugins.dizifilmizle
 
 import com.lagradost.cloudstream3.SubtitleFile
-import com.lagradost.cloudstream3.USER_AGENT
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.utils.*
 
 class VidmiziExtractor : ExtractorApi() {
+    private val VIDMIZI_USER_AGENT =
+        "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+
     override val name = "Vidmizi"
     override val mainUrl = "https://vidmixi.com"
     override val requiresReferer = true
@@ -21,7 +23,7 @@ class VidmiziExtractor : ExtractorApi() {
             url,
             referer = ref,
             headers = mapOf(
-                "User-Agent" to USER_AGENT,
+                "User-Agent" to VIDMIZI_USER_AGENT,
                 "Accept-Language" to "tr-TR,tr;q=0.9,en;q=0.7"
             )
         )
@@ -102,7 +104,7 @@ class VidmiziExtractor : ExtractorApi() {
                     this.headers = mapOf(
                         "Referer" to url,
                         "Origin" to mainUrl,
-                        "User-Agent" to USER_AGENT
+                        "User-Agent" to VIDMIZI_USER_AGENT
                     )
                 }
             )
