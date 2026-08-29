@@ -4,6 +4,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Document
 import java.net.URI
+import java.net.URLEncoder
 
 class DiziFilmizle : MainAPI() {
     override var mainUrl = "https://dizifilmizle.to"
@@ -39,8 +40,8 @@ class DiziFilmizle : MainAPI() {
 
         // Önce sitenin kendi arama uçlarını dene. Site değişirse katalog fallback'i eksik sonuç bırakmaz.
         val candidates = listOf(
-            "$mainUrl/arama?q=${q.urlEncode()}",
-            "$mainUrl/search?q=${q.urlEncode()}",
+            "$mainUrl/arama?q=${encodeQuery(q)}",
+            "$mainUrl/search?q=${encodeQuery(q)}",
             "$mainUrl/yabanci-dizi-izle"
         )
 
@@ -91,10 +92,6 @@ class DiziFilmizle : MainAPI() {
         val yearText = doc.body().text()
         val year = Regex("""\b(19|20)\d{2}\b""").find(yearText)?.value?.toIntOrNull()
 
-        val rating = Regex("""(\d+(?:[.,]\d+)?)\s*/\s*10""")
-            .find(yearText)?.groupValues?.getOrNull(1)
-            ?.replace(",", ".")?.toDoubleOrNull()
-
         val tags = doc.select("a[href*=/tur/], a[href*=/genre/]")
             .map { it.text().trim() }.filter { it.isNotBlank() }.distinct()
 
@@ -141,7 +138,6 @@ class DiziFilmizle : MainAPI() {
             this.posterUrl = poster
             this.plot = plot
             this.year = year
-            this.rating = rating?.times(1000)?.toInt()
             this.tags = tags
         }
     }
@@ -357,6 +353,9 @@ class DiziFilmizle : MainAPI() {
             .split(' ').joinToString(" ") { w ->
                 w.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
             }
+
+    private fun encodeQuery(value: String): String =
+        URLEncoder.encode(value, "UTF-8")
 
     private fun firstNonBlank(vararg values: String?): String =
         values.firstOrNull { !it.isNullOrBlank() }?.trim().orEmpty()
