@@ -29,3 +29,6 @@ project(":ShowTV").projectDir = file("ShowTV")
 
 include(":Tizam")
 project(":Tizam").projectDir = file("Tizam")
+
+include(":DiziFilmizle")
+project(":DiziFilmizle").projectDir = file("DiziFilmizle")
