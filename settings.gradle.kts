@@ -5,6 +5,18 @@ pluginManagement {
         gradlePluginPortal()
         maven("https://jitpack.io")
     }
+
+    // Kotlin 2.3.x metadata desteği için AGP'nin gömülü eski R8 sürümünü ez.
+    // Mevcut AGP/Kotlin yapısını değiştirmeden yalnız D8/R8'i güncelliyoruz.
+    buildscript {
+        repositories {
+            google()
+            mavenCentral()
+        }
+        dependencies {
+            classpath("com.android.tools:r8:8.13.19")
+        }
+    }
 }
 
 dependencyResolutionManagement {
