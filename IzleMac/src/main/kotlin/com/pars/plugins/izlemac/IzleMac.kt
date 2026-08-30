@@ -2,6 +2,7 @@ package com.pars.plugins.izlemac
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -104,15 +105,6 @@ class IzleMac : MainAPI() {
             ?.takeIf { it.isNotBlank() }
             ?.let(::absoluteUrl)
 
-        /*
-         * Sitenin kendi player mantığı:
-         *
-         * /matches?id=bein-sports-1
-         *
-         * Burada doğrudan m3u8'i kalıcı olarak saklamıyoruz.
-         * Kanal açıldığında /matches sayfasından güncel yayını
-         * tekrar çözeceğiz.
-         */
         val playerPage =
             "$mainUrl/matches?id=${urlEncode(channelId)}"
 
@@ -177,9 +169,6 @@ class IzleMac : MainAPI() {
 
         var poster: String? = null
 
-        /*
-         * Ana sayfadan gerçek kanal adını ve logosunu buluyoruz.
-         */
         try {
             val home = app.get(
                 "$mainUrl/",
@@ -262,19 +251,20 @@ class IzleMac : MainAPI() {
                 ?: return false
 
         callback.invoke(
-            ExtractorLink(
+            newExtractorLink(
                 source = name,
                 name = name,
                 url = streamUrl,
-                referer = data,
-                quality = Qualities.Unknown.value,
-                isM3u8 = true,
-                headers = mapOf(
+                type = ExtractorLinkType.M3U8
+            ) {
+                this.referer = data
+                this.quality = Qualities.Unknown.value
+                this.headers = mapOf(
                     "User-Agent" to USER_AGENT,
                     "Referer" to data,
                     "Origin" to mainUrl
                 )
-            )
+            }
         )
 
         return true
@@ -288,16 +278,7 @@ class IzleMac : MainAPI() {
         document: Document
     ): String? {
 
-        /*
-         * Örnek:
-         *
-         * <video>
-         *   <source
-         *     src="https://corestream....../mono.m3u8"
-         *   >
-         * </video>
-         */
-
+        // <video><source src="....m3u8"></video>
         document
             .select("video source[src]")
             .forEach { element ->
@@ -316,10 +297,7 @@ class IzleMac : MainAPI() {
                 }
             }
 
-        /*
-         * iframe/video src üzerinde doğrudan m3u8 varsa.
-         */
-
+        // src attribute içinde doğrudan m3u8
         document
             .select("[src]")
             .forEach { element ->
@@ -338,10 +316,7 @@ class IzleMac : MainAPI() {
                 }
             }
 
-        /*
-         * href içinde varsa.
-         */
-
+        // href içinde m3u8
         document
             .select("a[href]")
             .forEach { element ->
@@ -360,10 +335,7 @@ class IzleMac : MainAPI() {
                 }
             }
 
-        /*
-         * Son fallback: HTML / JavaScript içinden ara.
-         */
-
+        // HTML / JavaScript içinden son kez ara.
         return findM3u8(
             document.html()
         )
