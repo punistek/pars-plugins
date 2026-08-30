@@ -1,0 +1,17 @@
+{
+  "manifestVersion": 1,
+  "id": "news",
+  "name": "Haber Radyoları",
+  "description": "Haber ve konuşma radyoları",
+  "icon": "📰",
+  "version": 1,
+  "source": {
+    "engine": "radio_browser",
+    "type": "tag",
+    "value": "news",
+    "order": "clickcount",
+    "reverse": true,
+    "hideBroken": true,
+    "pageSize": 60
+  }
+}

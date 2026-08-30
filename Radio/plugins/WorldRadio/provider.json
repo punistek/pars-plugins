@@ -1,0 +1,17 @@
+{
+  "manifestVersion": 1,
+  "id": "world",
+  "name": "Dünya Radyoları",
+  "description": "Dünya genelindeki popüler radyolar",
+  "icon": "🌍",
+  "version": 1,
+  "source": {
+    "engine": "radio_browser",
+    "type": "world",
+    "value": "",
+    "order": "clickcount",
+    "reverse": true,
+    "hideBroken": true,
+    "pageSize": 60
+  }
+}

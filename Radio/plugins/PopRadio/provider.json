@@ -1,0 +1,17 @@
+{
+  "manifestVersion": 1,
+  "id": "pop",
+  "name": "Pop Radyoları",
+  "description": "Pop müzik radyoları",
+  "icon": "🎵",
+  "version": 1,
+  "source": {
+    "engine": "radio_browser",
+    "type": "tag",
+    "value": "pop",
+    "order": "clickcount",
+    "reverse": true,
+    "hideBroken": true,
+    "pageSize": 60
+  }
+}

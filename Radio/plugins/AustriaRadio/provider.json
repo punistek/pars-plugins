@@ -1,0 +1,17 @@
+{
+  "manifestVersion": 1,
+  "id": "austria",
+  "name": "Avusturya Radyoları",
+  "description": "Avusturya'daki internet radyoları",
+  "icon": "🇦🇹",
+  "version": 1,
+  "source": {
+    "engine": "radio_browser",
+    "type": "country",
+    "value": "AT",
+    "order": "clickcount",
+    "reverse": true,
+    "hideBroken": true,
+    "pageSize": 60
+  }
+}
