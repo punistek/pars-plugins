@@ -5,7 +5,10 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
+import org.json.JSONObject
 import org.jsoup.nodes.Element
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 class IzleMac : MainAPI() {
 
@@ -20,26 +23,58 @@ class IzleMac : MainAPI() {
         TvType.Live
     )
 
+    private val channelApi =
+        "https://teletv5.top/load/yayinlink.php"
+
     private val browserUserAgent =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
             "AppleWebKit/537.36 (KHTML, like Gecko) " +
             "Chrome/151.0.0.0 Safari/537.36"
 
+    /*
+     * ArdaSpor ana sayfasını çekerken kullanılacak header'lar.
+     */
     private val pageHeaders: Map<String, String>
         get() = mapOf(
             "User-Agent" to browserUserAgent,
-            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Accept" to
+                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language" to
+                "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
             "Cache-Control" to "no-cache",
             "Pragma" to "no-cache",
             "Referer" to "$mainUrl/"
         )
 
+    /*
+     * yayinlink.php endpoint'i için.
+     */
+    private val apiHeaders: Map<String, String>
+        get() = mapOf(
+            "User-Agent" to browserUserAgent,
+            "Accept" to "*/*",
+            "Accept-Language" to
+                "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Cache-Control" to "no-cache",
+            "Pragma" to "no-cache",
+            "Origin" to mainUrl,
+            "Referer" to "$mainUrl/"
+        )
+
+    /*
+     * Gerçek M3U8 ve segment isteklerinde kullanılacak header'lar.
+     *
+     * Tarayıcıda çalışan istekte gördüğümüz:
+     *
+     * Origin  = https://www.ardaspor30.top
+     * Referer = https://www.ardaspor30.top/
+     */
     private val streamHeaders: Map<String, String>
         get() = mapOf(
             "User-Agent" to browserUserAgent,
             "Accept" to "*/*",
-            "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Accept-Language" to
+                "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
             "Cache-Control" to "no-cache",
             "Pragma" to "no-cache",
             "Origin" to mainUrl,
@@ -68,13 +103,15 @@ class IzleMac : MainAPI() {
         }
 
         val document = app.get(
-            request.data,
+            "$mainUrl/",
             headers = pageHeaders
         ).document
 
         val channels = document
             .select(".t2-kanal-kart[data-kanal]")
-            .mapNotNull(::toChannelResult)
+            .mapNotNull { element ->
+                createChannelResult(element)
+            }
             .distinctBy { it.url }
 
         return newHomePageResponse(
@@ -85,13 +122,22 @@ class IzleMac : MainAPI() {
     }
 
     // ============================================================
-    // KANAL KARTI
+    // KANAL KARTINI CLOUDSTREAM ITEM'INA ÇEVİR
     // ============================================================
 
-    private fun toChannelResult(
+    private fun createChannelResult(
         element: Element
     ): SearchResponse? {
 
+        /*
+         * Örnek:
+         *
+         * data-kanal="bein-sports-1"
+         *
+         * Buradaki ID bizim için kritik.
+         *
+         * M3U8 ALMIYORUZ.
+         */
         val channelId = element
             .attr("data-kanal")
             .trim()
@@ -116,27 +162,30 @@ class IzleMac : MainAPI() {
                     ?.trim()
                     ?.takeIf { it.isNotBlank() }
                 ?: channelId
+                    .replace("-", " ")
+                    .uppercase()
 
         val poster = element
             .selectFirst("img[src]")
             ?.attr("src")
             ?.trim()
             ?.takeIf { it.isNotBlank() }
-            ?.let(::absoluteUrl)
+            ?.let {
+                absoluteUrl(it)
+            }
 
         /*
-         * ÖNEMLİ:
-         * Burada data-m3u8 KULLANMIYORUZ.
+         * CloudStream içinde taşıdığımız URL.
          *
-         * CloudStream'e sadece kanalın /matches sayfasını taşıyoruz.
-         * Gerçek yayın URL'si loadLinks içinde çözülecek.
+         * Bu URL açılmayacak.
+         * Sadece channelId bilgisini load/loadLinks'e taşır.
          */
-        val playerPage =
-            "$mainUrl/matches?id=${urlEncode(channelId)}"
+        val cloudstreamUrl =
+            "$mainUrl/channel?id=${urlEncode(channelId)}"
 
         return newLiveSearchResponse(
             title,
-            playerPage,
+            cloudstreamUrl,
             TvType.Live
         ) {
             posterUrl = poster
@@ -151,9 +200,9 @@ class IzleMac : MainAPI() {
         query: String
     ): List<SearchResponse> {
 
-        val q = query.trim()
+        val searchText = query.trim()
 
-        if (q.isBlank()) {
+        if (searchText.isBlank()) {
             return emptyList()
         }
 
@@ -164,10 +213,12 @@ class IzleMac : MainAPI() {
 
         return document
             .select(".t2-kanal-kart[data-kanal]")
-            .mapNotNull(::toChannelResult)
+            .mapNotNull { element ->
+                createChannelResult(element)
+            }
             .filter {
                 it.name.contains(
-                    q,
+                    searchText,
                     ignoreCase = true
                 )
             }
@@ -175,7 +226,7 @@ class IzleMac : MainAPI() {
     }
 
     // ============================================================
-    // LOAD
+    // KANALA TIKLANDI
     // ============================================================
 
     override suspend fun load(
@@ -187,56 +238,71 @@ class IzleMac : MainAPI() {
             "id"
         )
 
-        var title = channelId
-            ?.replace("-", " ")
-            ?.uppercase()
-            ?.takeIf { it.isNotBlank() }
-            ?: name
+        var title =
+            channelId
+                ?.replace("-", " ")
+                ?.uppercase()
+                ?: "ArdaSpor"
 
         var poster: String? = null
 
-        try {
+        /*
+         * Kanal adını ve logosunu ana sayfadan tekrar buluyoruz.
+         */
+        if (!channelId.isNullOrBlank()) {
 
-            val document = app.get(
-                "$mainUrl/",
-                headers = pageHeaders
-            ).document
+            try {
 
-            val card = document
-                .select(".t2-kanal-kart[data-kanal]")
-                .firstOrNull {
+                val document = app.get(
+                    "$mainUrl/",
+                    headers = pageHeaders
+                ).document
 
-                    it.attr("data-kanal")
-                        .trim()
-                        .equals(
-                            channelId,
-                            ignoreCase = true
-                        )
+                val card = document
+                    .select(".t2-kanal-kart[data-kanal]")
+                    .firstOrNull { element ->
+
+                        element
+                            .attr("data-kanal")
+                            .trim()
+                            .equals(
+                                channelId,
+                                ignoreCase = true
+                            )
+                    }
+
+                if (card != null) {
+
+                    title =
+                        card
+                            .attr("title")
+                            .trim()
+                            .takeIf { it.isNotBlank() }
+                            ?: card
+                                .selectFirst("img[alt]")
+                                ?.attr("alt")
+                                ?.trim()
+                                ?.takeIf { it.isNotBlank() }
+                            ?: card
+                                .selectFirst(".t2-kanal-ad")
+                                ?.text()
+                                ?.trim()
+                                ?.takeIf { it.isNotBlank() }
+                            ?: title
+
+                    poster = card
+                        .selectFirst("img[src]")
+                        ?.attr("src")
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let {
+                            absoluteUrl(it)
+                        }
                 }
 
-            if (card != null) {
-
-                title =
-                    card
-                        .attr("title")
-                        .trim()
-                        .takeIf { it.isNotBlank() }
-                        ?: card
-                            .selectFirst("img[alt]")
-                            ?.attr("alt")
-                            ?.trim()
-                            ?.takeIf { it.isNotBlank() }
-                        ?: title
-
-                poster = card
-                    .selectFirst("img[src]")
-                    ?.attr("src")
-                    ?.trim()
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let(::absoluteUrl)
+            } catch (_: Throwable) {
+                // İsim bulunamazsa yayın yine açılabilsin.
             }
-
-        } catch (_: Throwable) {
         }
 
         return newLiveStreamLoadResponse(
@@ -250,7 +316,7 @@ class IzleMac : MainAPI() {
     }
 
     // ============================================================
-    // LOAD LINKS
+    // GERÇEK YAYIN URL'SİNİ AL
     // ============================================================
 
     override suspend fun loadLinks(
@@ -261,25 +327,33 @@ class IzleMac : MainAPI() {
     ): Boolean {
 
         /*
-         * data örneği:
+         * Örnek data:
          *
-         * https://www.ardaspor30.top/matches?id=bein1
-         *
-         * Kesinlikle ana sayfadaki data-m3u8 okunmayacak.
+         * https://www.ardaspor30.top/channel?id=bein-sports-1
          */
 
-        val playerResponse = try {
+        val channelId = getQueryParameter(
+            data,
+            "id"
+        ) ?: return false
+
+        if (channelId.isBlank()) {
+            return false
+        }
+
+        /*
+         * GERÇEK ENDPOINT:
+         *
+         * https://teletv5.top/load/yayinlink.php?id=bein-sports-1
+         */
+        val apiUrl =
+            "$channelApi?id=${urlEncode(channelId)}"
+
+        val response = try {
 
             app.get(
-                data,
-                headers = mapOf(
-                    "User-Agent" to browserUserAgent,
-                    "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-                    "Cache-Control" to "no-cache",
-                    "Pragma" to "no-cache",
-                    "Referer" to "$mainUrl/"
-                )
+                apiUrl,
+                headers = apiHeaders
             )
 
         } catch (_: Throwable) {
@@ -287,89 +361,78 @@ class IzleMac : MainAPI() {
             return false
         }
 
-        val html = playerResponse.text
-
         /*
-         * Öncelik:
+         * Gelen cevap örneği:
          *
-         * <video>
-         *   <source src="GERCEK_URL.m3u8">
-         * </video>
+         * {
+         *   "deismackanal":
+         *   "https://corestream.ardastream.live//beintv/tracks-v1a1/mono.m3u8"
+         * }
          */
-        var streamUrl = playerResponse.document
-            .selectFirst("video source[src]")
-            ?.attr("src")
-            ?.trim()
-            ?.takeIf {
-                it.contains(
-                    ".m3u8",
-                    ignoreCase = true
-                )
-            }
+        val streamUrl = try {
 
-        /*
-         * Bazı sayfalarda video etiketi farklı olabilir.
-         */
-        if (streamUrl.isNullOrBlank()) {
-
-            streamUrl = playerResponse.document
-                .selectFirst("source[src]")
-                ?.attr("src")
-                ?.trim()
-                ?.takeIf {
-                    it.contains(
-                        ".m3u8",
-                        ignoreCase = true
-                    )
-                }
-        }
-
-        /*
-         * Son çare:
-         * HTML / Javascript içinde doğrudan m3u8 ara.
-         */
-        if (streamUrl.isNullOrBlank()) {
-
-            streamUrl = findM3u8(
-                html
+            val json = JSONObject(
+                response.text
             )
+
+            json
+                .optString(
+                    "deismackanal",
+                    ""
+                )
+                .trim()
+
+        } catch (_: Throwable) {
+
+            ""
         }
 
-        if (streamUrl.isNullOrBlank()) {
+        if (streamUrl.isBlank()) {
             return false
         }
 
-        streamUrl = normalizeStreamUrl(
-            streamUrl
-        )
+        val finalStreamUrl =
+            normalizeStreamUrl(
+                streamUrl
+            )
 
+        /*
+         * Sadece gerçek HTTP/HTTPS stream kabul ediyoruz.
+         */
         if (
-            !streamUrl.startsWith("http://") &&
-            !streamUrl.startsWith("https://")
+            !finalStreamUrl.startsWith(
+                "https://",
+                ignoreCase = true
+            ) &&
+            !finalStreamUrl.startsWith(
+                "http://",
+                ignoreCase = true
+            )
         ) {
             return false
         }
 
         /*
-         * GERÇEK m3u8 artık CloudStream'e veriliyor.
-         *
-         * Senin curl kaydındaki kritik header'lar:
-         *
-         * Origin:
-         * https://www.ardaspor30.top
-         *
-         * Referer:
-         * https://www.ardaspor30.top/
+         * M3U8 CloudStream'e gönderiliyor.
          */
-
         callback.invoke(
             newExtractorLink(
                 source = name,
                 name = name,
-                url = streamUrl,
+                url = finalStreamUrl,
                 type = ExtractorLinkType.M3U8
             ) {
+
+                /*
+                 * CloudStream'in referer alanını da ayrıca set ediyoruz.
+                 */
+                referer = "$mainUrl/"
+
+                /*
+                 * Manifest + segment istekleri aynı header'larla gitsin.
+                 */
                 headers = streamHeaders
+
                 quality = Qualities.Unknown.value
             }
         )
@@ -378,68 +441,30 @@ class IzleMac : MainAPI() {
     }
 
     // ============================================================
-    // M3U8 BUL
-    // ============================================================
-
-    private fun findM3u8(
-        html: String
-    ): String? {
-
-        val cleaned = html
-            .replace("\\/", "/")
-            .replace("&amp;", "&")
-            .replace("\\u0026", "&")
-            .replace("\\u003d", "=")
-
-        /*
-         * Önce <source src="">
-         */
-        val sourceRegex = Regex(
-            """(?is)<source[^>]+src\s*=\s*["']([^"']+?\.m3u8(?:\?[^"']*)?)["']"""
-        )
-
-        val sourceMatch = sourceRegex
-            .find(cleaned)
-            ?.groupValues
-            ?.getOrNull(1)
-            ?.trim()
-
-        if (!sourceMatch.isNullOrBlank()) {
-            return sourceMatch
-        }
-
-        /*
-         * Sonra herhangi bir HTTPS m3u8.
-         */
-        val directRegex = Regex(
-            """https?://[^"'\\<>\s]+?\.m3u8(?:\?[^"'\\<>\s]*)?""",
-            RegexOption.IGNORE_CASE
-        )
-
-        return directRegex
-            .find(cleaned)
-            ?.value
-            ?.trim()
-    }
-
-    // ============================================================
-    // STREAM URL NORMALIZE
+    // STREAM URL TEMİZLE
     // ============================================================
 
     private fun normalizeStreamUrl(
         url: String
     ): String {
 
-        val value = url
-            .trim()
+        var value = url.trim()
+
+        value = value
             .replace("\\/", "/")
             .replace("&amp;", "&")
             .replace("\\u0026", "&")
             .replace("\\u003d", "=")
 
         if (
-            value.startsWith("http://") ||
-            value.startsWith("https://")
+            value.startsWith(
+                "https://",
+                ignoreCase = true
+            ) ||
+            value.startsWith(
+                "http://",
+                ignoreCase = true
+            )
         ) {
             return value
         }
@@ -448,9 +473,7 @@ class IzleMac : MainAPI() {
             return "https:$value"
         }
 
-        return absoluteUrl(
-            value
-        )
+        return value
     }
 
     // ============================================================
@@ -468,8 +491,14 @@ class IzleMac : MainAPI() {
         }
 
         if (
-            value.startsWith("http://") ||
-            value.startsWith("https://")
+            value.startsWith(
+                "https://",
+                ignoreCase = true
+            ) ||
+            value.startsWith(
+                "http://",
+                ignoreCase = true
+            )
         ) {
             return value
         }
@@ -482,7 +511,7 @@ class IzleMac : MainAPI() {
     }
 
     // ============================================================
-    // QUERY PARAM
+    // QUERY PARAMETER OKU
     // ============================================================
 
     private fun getQueryParameter(
@@ -490,11 +519,16 @@ class IzleMac : MainAPI() {
         key: String
     ): String? {
 
-        return url
-            .substringAfter(
-                "?",
-                ""
-            )
+        val query = url.substringAfter(
+            "?",
+            ""
+        )
+
+        if (query.isBlank()) {
+            return null
+        }
+
+        return query
             .split("&")
             .mapNotNull { part ->
 
@@ -504,25 +538,22 @@ class IzleMac : MainAPI() {
                 )
 
                 if (
-                    pieces.size == 2 &&
-                    pieces[0] == key
+                    pieces.size != 2 ||
+                    pieces[0] != key
                 ) {
+                    return@mapNotNull null
+                }
 
-                    try {
+                try {
 
-                        java.net.URLDecoder.decode(
-                            pieces[1],
-                            "UTF-8"
-                        )
+                    URLDecoder.decode(
+                        pieces[1],
+                        "UTF-8"
+                    )
 
-                    } catch (_: Throwable) {
+                } catch (_: Throwable) {
 
-                        pieces[1]
-                    }
-
-                } else {
-
-                    null
+                    pieces[1]
                 }
             }
             .firstOrNull()
@@ -538,7 +569,7 @@ class IzleMac : MainAPI() {
 
         return try {
 
-            java.net.URLEncoder.encode(
+            URLEncoder.encode(
                 value,
                 "UTF-8"
             )
