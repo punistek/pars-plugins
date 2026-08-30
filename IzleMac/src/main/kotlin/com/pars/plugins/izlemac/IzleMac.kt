@@ -1,27 +1,39 @@
 package com.pars.plugins.izlemac
 
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.Qualities
+import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
 class IzleMac : MainAPI() {
 
-    override var mainUrl = "https://izlemac549.sbs"
-    override var name = "IzleMac"
+    override var mainUrl = "https://www.ardaspor30.top"
+    override var name = "ArdaSpor"
+
     override val hasMainPage = true
     override var lang = "tr"
     override val hasDownloadSupport = false
 
-    override val supportedTypes = setOf(TvType.Live)
-
-    private val headers = mapOf(
-        "User-Agent" to USER_AGENT,
-        "Accept-Language" to "tr-TR,tr;q=0.9,en;q=0.8",
-        "Referer" to "$mainUrl/"
+    override val supportedTypes = setOf(
+        TvType.Live
     )
+
+    private val headers: Map<String, String>
+        get() = mapOf(
+            "User-Agent" to USER_AGENT,
+            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language" to "tr-TR,tr;q=0.9,en;q=0.8",
+            "Referer" to "$mainUrl/"
+        )
 
     override val mainPage = mainPageOf(
-        "$mainUrl/" to "TV Kanalları"
+        "$mainUrl/" to "Canlı Kanallar"
     )
+
+    // ------------------------------------------------------------
+    // ANA SAYFA
+    // ------------------------------------------------------------
 
     override suspend fun getMainPage(
         page: Int,
@@ -42,7 +54,7 @@ class IzleMac : MainAPI() {
         ).document
 
         val channels = document
-            .select("div.item.live")
+            .select(".t2-kanal-kart[data-kanal]")
             .mapNotNull(::toChannelResult)
             .distinctBy { it.url }
 
@@ -53,44 +65,79 @@ class IzleMac : MainAPI() {
         )
     }
 
-    private fun toChannelResult(root: Element): SearchResponse? {
-        val link = root.selectFirst("a.dblock[href], a[href]") ?: return null
+    // ------------------------------------------------------------
+    // KANAL KARTI
+    // ------------------------------------------------------------
 
-        val pageUrl = link.absUrl("href").ifBlank {
-            absoluteUrl(link.attr("href"))
+    private fun toChannelResult(
+        element: Element
+    ): SearchResponse? {
+
+        val channelId = element
+            .attr("data-kanal")
+            .trim()
+
+        if (channelId.isBlank()) {
+            return null
         }
 
-        if (
-            pageUrl.isBlank() ||
-            !pageUrl.contains("/canli-mac-izle/")
-        ) return null
-
-        val title = root
-            .selectFirst("strong.name.tvcp, strong.name")
-            ?.text()
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
+        val title = element
+            .attr("title")
+            .trim()
+            .takeIf { it.isNotBlank() }
+            ?: element
+                .selectFirst("img[alt]")
+                ?.attr("alt")
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+            ?: element
+                .selectFirst(".t2-kanal-ad")
+                ?.text()
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
             ?: return null
 
+        val poster = element
+            .selectFirst("img[src]")
+            ?.attr("src")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.let(::absoluteUrl)
+
         /*
-         * Site kanal kimliğini CSS sınıfında da taşıyor:
+         * Sitenin kendi player mantığı:
          *
-         * tvicx-5062
+         * /matches?id=bein-sports-1
          *
-         * Bunu URL'ye eklemiyoruz. Kanal kartının data alanı gerçek
-         * kanal sayfası olarak kalıyor. load() içinde player URL'si
-         * sayfanın kendi data-player-url değerinden okunuyor.
+         * Burada doğrudan m3u8'i kalıcı olarak saklamıyoruz.
+         * Kanal açıldığında /matches sayfasından güncel yayını
+         * tekrar çözeceğiz.
          */
+        val playerPage =
+            "$mainUrl/matches?id=${urlEncode(channelId)}"
+
         return newLiveSearchResponse(
             title,
-            pageUrl,
+            playerPage,
             TvType.Live
-        )
+        ) {
+            posterUrl = poster
+        }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
+    // ------------------------------------------------------------
+    // ARAMA
+    // ------------------------------------------------------------
+
+    override suspend fun search(
+        query: String
+    ): List<SearchResponse> {
+
         val q = query.trim()
-        if (q.isBlank()) return emptyList()
+
+        if (q.isBlank()) {
+            return emptyList()
+        }
 
         val document = app.get(
             "$mainUrl/",
@@ -98,142 +145,338 @@ class IzleMac : MainAPI() {
         ).document
 
         return document
-            .select("div.item.live")
+            .select(".t2-kanal-kart[data-kanal]")
             .mapNotNull(::toChannelResult)
-            .filter { it.name.contains(q, ignoreCase = true) }
+            .filter {
+                it.name.contains(
+                    q,
+                    ignoreCase = true
+                )
+            }
             .distinctBy { it.url }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(
+    // ------------------------------------------------------------
+    // LOAD
+    // ------------------------------------------------------------
+
+    override suspend fun load(
+        url: String
+    ): LoadResponse {
+
+        val channelId = getQueryParameter(
             url,
-            headers = headers
-        ).document
+            "id"
+        )
 
-        val title = document
-            .selectFirst("strong.name.tvcp, h1, meta[property=og:title]")
-            ?.let { element ->
-                if (element.tagName() == "meta") {
-                    element.attr("content").substringBefore("|").trim()
-                } else {
-                    element.text().trim()
+        var title = channelId
+            ?.replace('-', ' ')
+            ?.uppercase()
+            ?.takeIf { it.isNotBlank() }
+            ?: name
+
+        var poster: String? = null
+
+        /*
+         * Ana sayfadan gerçek kanal adını ve logosunu buluyoruz.
+         */
+        try {
+            val home = app.get(
+                "$mainUrl/",
+                headers = headers
+            ).document
+
+            val card = home
+                .select(".t2-kanal-kart[data-kanal]")
+                .firstOrNull {
+                    it.attr("data-kanal")
+                        .trim()
+                        .equals(
+                            channelId,
+                            ignoreCase = true
+                        )
                 }
+
+            if (card != null) {
+
+                title = card
+                    .attr("title")
+                    .trim()
+                    .takeIf { it.isNotBlank() }
+                    ?: card
+                        .selectFirst("img[alt]")
+                        ?.attr("alt")
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() }
+                    ?: title
+
+                poster = card
+                    .selectFirst("img[src]")
+                    ?.attr("src")
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let(::absoluteUrl)
             }
-            ?.takeIf { it.isNotBlank() }
-            ?: url.substringAfterLast("/canli-mac-izle/")
-                .trim('/')
-                .replace('-', ' ')
-                .ifBlank { name }
 
-        val description = document
-            .selectFirst("meta[name=description]")
-            ?.attr("content")
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            // Ana sayfa bilgisi alınamazsa player yine denenir.
+        }
 
-        val poster = document
-            .selectFirst("meta[property=og:image]")
-            ?.attr("content")
-            ?.let(::absoluteUrl)
-            ?.takeIf { it.isNotBlank() }
-
-        /*
-         * Kanal sayfasının ilan ettiği player adresini bul.
-         *
-         * Örnek:
-         * /wp-content/themes/ikisifirbirdokuz/match-center.php?id=5062
-         *
-         * Selector'ları biraz geniş tuttuk; site attribute'u farklı bir
-         * elemente taşısa bile public HTML'deki player URL'sini okuyabilir.
-         */
-        val playerUrl = findPlayerUrl(document)
-            ?: throw ErrorLoadingException(
-                "Kanal player adresi bulunamadı."
-            )
-
-        /*
-         * Runtime'a artık kanal sayfasını değil, sayfanın açıkça ilan
-         * ettiği player URL'sini data olarak veriyoruz.
-         */
         return newLiveStreamLoadResponse(
             title,
             url,
-            playerUrl
+            url
         ) {
             posterUrl = poster
-            plot = description
+            plot = "ArdaSpor canlı yayın"
         }
     }
 
-    private fun findPlayerUrl(document: org.jsoup.nodes.Document): String? {
-        // Öncelik: data-player-url
-        document.select("[data-player-url]").forEach { element ->
-            val value = element.attr("data-player-url").trim()
-            if (value.isNotBlank()) {
-                return absoluteUrl(value)
-            }
-        }
-
-        // Site yapısı değişirse match-center bağlantısını doğrudan ara.
-        document.select("a[href], iframe[src], [src]").forEach { element ->
-            val raw = when {
-                element.hasAttr("href") -> element.attr("href")
-                element.hasAttr("src") -> element.attr("src")
-                else -> ""
-            }.trim()
-
-            if (raw.contains("match-center.php", ignoreCase = true)) {
-                return absoluteUrl(raw)
-            }
-        }
-
-        // Son fallback: HTML içinden match-center.php?id=... değerini bul.
-        val html = document.html()
-
-        val regex = Regex(
-            """(?:https?:)?//[^"'<> ]*match-center\.php\?id=\d+|/[^"'<> ]*match-center\.php\?id=\d+""",
-            RegexOption.IGNORE_CASE
-        )
-
-        return regex.find(html)
-            ?.value
-            ?.replace("&amp;", "&")
-            ?.let(::absoluteUrl)
-    }
+    // ------------------------------------------------------------
+    // GERÇEK YAYIN ÇÖZÜMLEME
+    // ------------------------------------------------------------
 
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (com.lagradost.cloudstream3.utils.ExtractorLink) -> Unit
+        callback: (ExtractorLink) -> Unit
     ): Boolean {
 
-        /*
-         * data artık:
-         *
-         * https://izlemac549.sbs/.../match-center.php?id=XXXX
-         *
-         * Burada korumalı/dinamik üçüncü taraf HLS adresi çıkarmıyoruz.
-         * Runtime'ın bir web/player URL'si açma desteği varsa bu data
-         * değeri doğrudan ona teslim edilebilir.
-         */
-        return false
+        val playerHeaders = mapOf(
+            "User-Agent" to USER_AGENT,
+            "Referer" to "$mainUrl/",
+            "Origin" to mainUrl
+        )
+
+        val response = app.get(
+            data,
+            headers = playerHeaders
+        )
+
+        val document = response.document
+
+        val streamUrl =
+            findM3u8(document)
+                ?: findM3u8(response.text)
+                ?: return false
+
+        callback.invoke(
+            ExtractorLink(
+                source = name,
+                name = name,
+                url = streamUrl,
+                referer = data,
+                quality = Qualities.Unknown.value,
+                isM3u8 = true,
+                headers = mapOf(
+                    "User-Agent" to USER_AGENT,
+                    "Referer" to data,
+                    "Origin" to mainUrl
+                )
+            )
+        )
+
+        return true
     }
 
-    private fun absoluteUrl(url: String): String {
+    // ------------------------------------------------------------
+    // HTML İÇİNDEN M3U8
+    // ------------------------------------------------------------
+
+    private fun findM3u8(
+        document: Document
+    ): String? {
+
+        /*
+         * Örnek:
+         *
+         * <video>
+         *   <source
+         *     src="https://corestream....../mono.m3u8"
+         *   >
+         * </video>
+         */
+
+        document
+            .select("video source[src]")
+            .forEach { element ->
+
+                val src = element
+                    .attr("src")
+                    .trim()
+
+                if (
+                    src.contains(
+                        ".m3u8",
+                        ignoreCase = true
+                    )
+                ) {
+                    return absoluteStreamUrl(src)
+                }
+            }
+
+        /*
+         * iframe/video src üzerinde doğrudan m3u8 varsa.
+         */
+
+        document
+            .select("[src]")
+            .forEach { element ->
+
+                val src = element
+                    .attr("src")
+                    .trim()
+
+                if (
+                    src.contains(
+                        ".m3u8",
+                        ignoreCase = true
+                    )
+                ) {
+                    return absoluteStreamUrl(src)
+                }
+            }
+
+        /*
+         * href içinde varsa.
+         */
+
+        document
+            .select("a[href]")
+            .forEach { element ->
+
+                val href = element
+                    .attr("href")
+                    .trim()
+
+                if (
+                    href.contains(
+                        ".m3u8",
+                        ignoreCase = true
+                    )
+                ) {
+                    return absoluteStreamUrl(href)
+                }
+            }
+
+        /*
+         * Son fallback: HTML / JavaScript içinden ara.
+         */
+
+        return findM3u8(
+            document.html()
+        )
+    }
+
+    private fun findM3u8(
+        html: String
+    ): String? {
+
+        val cleaned = html
+            .replace("\\/", "/")
+            .replace("&amp;", "&")
+
+        val regex = Regex(
+            """https?://[^"'\\<>\s]+?\.m3u8(?:\?[^"'\\<>\s]*)?""",
+            RegexOption.IGNORE_CASE
+        )
+
+        return regex
+            .find(cleaned)
+            ?.value
+            ?.trim()
+    }
+
+    // ------------------------------------------------------------
+    // URL YARDIMCILARI
+    // ------------------------------------------------------------
+
+    private fun absoluteUrl(
+        url: String
+    ): String {
+
         val value = url.trim()
 
-        if (value.isBlank()) return ""
+        if (value.isBlank()) {
+            return ""
+        }
 
         if (
             value.startsWith("http://") ||
             value.startsWith("https://")
-        ) return value
+        ) {
+            return value
+        }
 
         if (value.startsWith("//")) {
             return "https:$value"
         }
 
         return "$mainUrl/${value.trimStart('/')}"
+    }
+
+    private fun absoluteStreamUrl(
+        url: String
+    ): String {
+
+        val value = url.trim()
+
+        if (
+            value.startsWith("http://") ||
+            value.startsWith("https://")
+        ) {
+            return value
+        }
+
+        if (value.startsWith("//")) {
+            return "https:$value"
+        }
+
+        return absoluteUrl(value)
+    }
+
+    private fun getQueryParameter(
+        url: String,
+        key: String
+    ): String? {
+
+        return url
+            .substringAfter(
+                "?",
+                ""
+            )
+            .split("&")
+            .mapNotNull { part ->
+
+                val pieces =
+                    part.split(
+                        "=",
+                        limit = 2
+                    )
+
+                if (
+                    pieces.size == 2 &&
+                    pieces[0] == key
+                ) {
+                    java.net.URLDecoder.decode(
+                        pieces[1],
+                        "UTF-8"
+                    )
+                } else {
+                    null
+                }
+            }
+            .firstOrNull()
+    }
+
+    private fun urlEncode(
+        value: String
+    ): String {
+
+        return java.net.URLEncoder.encode(
+            value,
+            "UTF-8"
+        )
     }
 }
