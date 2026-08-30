@@ -5,7 +5,6 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
-import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
 class IzleMac : MainAPI() {
@@ -21,17 +20,37 @@ class IzleMac : MainAPI() {
         TvType.Live
     )
 
-    private val headers: Map<String, String>
+    private val browserUserAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/151.0.0.0 Safari/537.36"
+
+    private val pageHeaders: Map<String, String>
         get() = mapOf(
-            "User-Agent" to USER_AGENT,
+            "User-Agent" to browserUserAgent,
             "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language" to "tr-TR,tr;q=0.9,en;q=0.8",
+            "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
             "Referer" to "$mainUrl/"
+        )
+
+    private val streamHeaders: Map<String, String>
+        get() = mapOf(
+            "User-Agent" to browserUserAgent,
+            "Accept" to "*/*",
+            "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Origin" to mainUrl,
+            "Referer" to "$mainUrl/",
+            "Cache-Control" to "no-cache",
+            "Pragma" to "no-cache"
         )
 
     override val mainPage = mainPageOf(
         "$mainUrl/" to "Canlı Kanallar"
     )
+
+    // ============================================================
+    // ANA SAYFA
+    // ============================================================
 
     override suspend fun getMainPage(
         page: Int,
@@ -48,7 +67,7 @@ class IzleMac : MainAPI() {
 
         val document = app.get(
             request.data,
-            headers = headers
+            headers = pageHeaders
         ).document
 
         val channels = document
@@ -63,6 +82,10 @@ class IzleMac : MainAPI() {
         )
     }
 
+    // ============================================================
+    // KANAL KARTI
+    // ============================================================
+
     private fun toChannelResult(
         element: Element
     ): SearchResponse? {
@@ -75,21 +98,22 @@ class IzleMac : MainAPI() {
             return null
         }
 
-        val title = element
-            .attr("title")
-            .trim()
-            .takeIf { it.isNotBlank() }
-            ?: element
-                .selectFirst("img[alt]")
-                ?.attr("alt")
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
-            ?: element
-                .selectFirst(".t2-kanal-ad")
-                ?.text()
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
-            ?: return null
+        val title =
+            element
+                .attr("title")
+                .trim()
+                .takeIf { it.isNotBlank() }
+                ?: element
+                    .selectFirst("img[alt]")
+                    ?.attr("alt")
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() }
+                ?: element
+                    .selectFirst(".t2-kanal-ad")
+                    ?.text()
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() }
+                ?: channelId
 
         val poster = element
             .selectFirst("img[src]")
@@ -98,31 +122,33 @@ class IzleMac : MainAPI() {
             ?.takeIf { it.isNotBlank() }
             ?.let(::absoluteUrl)
 
-        val playerPage =
+        val playerUrl =
             "$mainUrl/matches?id=${urlEncode(channelId)}"
 
         return newLiveSearchResponse(
             title,
-            playerPage,
+            playerUrl,
             TvType.Live
         ) {
             posterUrl = poster
         }
     }
 
+    // ============================================================
+    // ARAMA
+    // ============================================================
+
     override suspend fun search(
         query: String
     ): List<SearchResponse> {
 
-        val q = query.trim()
-
-        if (q.isBlank()) {
+        if (query.isBlank()) {
             return emptyList()
         }
 
         val document = app.get(
             "$mainUrl/",
-            headers = headers
+            headers = pageHeaders
         ).document
 
         return document
@@ -130,39 +156,45 @@ class IzleMac : MainAPI() {
             .mapNotNull(::toChannelResult)
             .filter {
                 it.name.contains(
-                    q,
+                    query,
                     ignoreCase = true
                 )
             }
             .distinctBy { it.url }
     }
 
+    // ============================================================
+    // LOAD
+    // ============================================================
+
     override suspend fun load(
         url: String
     ): LoadResponse {
 
-        val channelId = getQueryParameter(
-            url,
-            "id"
-        )
+        val channelId =
+            getQueryParameter(
+                url,
+                "id"
+            )
 
         var title = channelId
-            ?.replace('-', ' ')
+            ?.replace("-", " ")
             ?.uppercase()
-            ?.takeIf { it.isNotBlank() }
             ?: name
 
         var poster: String? = null
 
         try {
-            val home = app.get(
+
+            val document = app.get(
                 "$mainUrl/",
-                headers = headers
+                headers = pageHeaders
             ).document
 
-            val card = home
+            val card = document
                 .select(".t2-kanal-kart[data-kanal]")
                 .firstOrNull {
+
                     it.attr("data-kanal")
                         .trim()
                         .equals(
@@ -173,16 +205,17 @@ class IzleMac : MainAPI() {
 
             if (card != null) {
 
-                title = card
-                    .attr("title")
-                    .trim()
-                    .takeIf { it.isNotBlank() }
-                    ?: card
-                        .selectFirst("img[alt]")
-                        ?.attr("alt")
-                        ?.trim()
-                        ?.takeIf { it.isNotBlank() }
-                    ?: title
+                title =
+                    card
+                        .attr("title")
+                        .trim()
+                        .takeIf { it.isNotBlank() }
+                        ?: card
+                            .selectFirst("img[alt]")
+                            ?.attr("alt")
+                            ?.trim()
+                            ?.takeIf { it.isNotBlank() }
+                        ?: title
 
                 poster = card
                     .selectFirst("img[src]")
@@ -192,7 +225,7 @@ class IzleMac : MainAPI() {
                     ?.let(::absoluteUrl)
             }
 
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
         }
 
         return newLiveStreamLoadResponse(
@@ -205,6 +238,10 @@ class IzleMac : MainAPI() {
         }
     }
 
+    // ============================================================
+    // LOAD LINKS
+    // ============================================================
+
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -212,79 +249,88 @@ class IzleMac : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
 
-        val channelId = getQueryParameter(
-            data,
-            "id"
-        )
+        val channelId =
+            getQueryParameter(
+                data,
+                "id"
+            ) ?: return false
 
-        var streamUrl: String? = null
-        var streamReferer = data
+        // --------------------------------------------------------
+        // 1. Ana sayfadan ilgili kanal kartını bul
+        // --------------------------------------------------------
 
-        // 1) Önce ana sayfadaki data-m3u8 değerini dene
-        if (!channelId.isNullOrBlank()) {
+        val homeDocument = try {
 
-            try {
-                val homeDocument = app.get(
-                    "$mainUrl/",
-                    headers = mapOf(
-                        "User-Agent" to USER_AGENT,
-                        "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                        "Accept-Language" to "tr-TR,tr;q=0.9,en;q=0.8",
-                        "Referer" to "$mainUrl/"
-                    )
-                ).document
+            app.get(
+                "$mainUrl/",
+                headers = pageHeaders
+            ).document
 
-                val card = homeDocument
-                    .select(".t2-kanal-kart[data-kanal]")
-                    .firstOrNull {
-                        it.attr("data-kanal")
-                            .trim()
-                            .equals(
-                                channelId,
-                                ignoreCase = true
-                            )
-                    }
+        } catch (_: Throwable) {
 
-                val directM3u8 = card
-                    ?.attr("data-m3u8")
-                    ?.trim()
-
-                if (
-                    !directM3u8.isNullOrBlank() &&
-                    directM3u8.contains(
-                        ".m3u8",
-                        ignoreCase = true
-                    )
-                ) {
-                    streamUrl = absoluteStreamUrl(
-                        directM3u8
-                    )
-
-                    streamReferer = "$mainUrl/"
-                }
-
-            } catch (_: Exception) {
-            }
+            return false
         }
 
-        // 2) data-m3u8 bulunmazsa /matches ve iframe zincirini çöz
+        val card = homeDocument
+            .select(".t2-kanal-kart[data-kanal]")
+            .firstOrNull {
+
+                it.attr("data-kanal")
+                    .trim()
+                    .equals(
+                        channelId,
+                        ignoreCase = true
+                    )
+            }
+
+        // --------------------------------------------------------
+        // 2. Önce data-m3u8 değerini kontrol et
+        // --------------------------------------------------------
+
+        var streamUrl = card
+            ?.attr("data-m3u8")
+            ?.trim()
+            ?.takeIf {
+                it.contains(
+                    ".m3u8",
+                    ignoreCase = true
+                )
+            }
+
+        // --------------------------------------------------------
+        // 3. data-m3u8 yoksa matches sayfasından gerçek URL'yi bul
+        // --------------------------------------------------------
+
         if (streamUrl.isNullOrBlank()) {
 
-            val resolved = resolvePlayerPage(
-                url = data,
-                referer = "$mainUrl/",
-                depth = 0
-            )
+            streamUrl = try {
 
-            if (resolved != null) {
-                streamUrl = resolved.first
-                streamReferer = resolved.second
+                val playerResponse = app.get(
+                    data,
+                    headers = pageHeaders
+                )
+
+                findM3u8(
+                    playerResponse.text
+                )
+
+            } catch (_: Throwable) {
+
+                null
             }
         }
 
         if (streamUrl.isNullOrBlank()) {
             return false
         }
+
+        streamUrl = absoluteStreamUrl(
+            streamUrl
+        )
+
+        // --------------------------------------------------------
+        // 4. CloudStream player'a GERÇEK HLS URL + HEADER ver
+        // --------------------------------------------------------
 
         callback.invoke(
             newExtractorLink(
@@ -293,180 +339,17 @@ class IzleMac : MainAPI() {
                 url = streamUrl,
                 type = ExtractorLinkType.M3U8
             ) {
-                referer = streamReferer
+                headers = streamHeaders
                 quality = Qualities.Unknown.value
-
-                headers = mapOf(
-                    "User-Agent" to USER_AGENT,
-                    "Referer" to streamReferer,
-                    "Origin" to getOrigin(streamReferer)
-                )
             }
         )
 
         return true
     }
 
-    private suspend fun resolvePlayerPage(
-        url: String,
-        referer: String,
-        depth: Int
-    ): Pair<String, String>? {
-
-        if (depth > 4) {
-            return null
-        }
-
-        return try {
-
-            val response = app.get(
-                url,
-                headers = mapOf(
-                    "User-Agent" to USER_AGENT,
-                    "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "Accept-Language" to "tr-TR,tr;q=0.9,en;q=0.8",
-                    "Referer" to referer
-                )
-            )
-
-            val document = response.document
-
-            val direct =
-                findM3u8(document)
-                    ?: findM3u8(response.text)
-
-            if (!direct.isNullOrBlank()) {
-                return Pair(
-                    direct,
-                    url
-                )
-            }
-
-            val iframes = document
-                .select("iframe[src]")
-                .mapNotNull { element ->
-
-                    element
-                        .attr("src")
-                        .trim()
-                        .takeIf {
-                            it.isNotBlank()
-                        }
-                }
-
-            for (iframeSrc in iframes) {
-
-                val iframeUrl = resolveUrl(
-                    baseUrl = url,
-                    relativeUrl = iframeSrc
-                )
-
-                val found = resolvePlayerPage(
-                    url = iframeUrl,
-                    referer = url,
-                    depth = depth + 1
-                )
-
-                if (found != null) {
-                    return found
-                }
-            }
-
-            null
-
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun findM3u8(
-        document: Document
-    ): String? {
-
-        document
-            .select("video source[src]")
-            .forEach { element ->
-
-                val src = element
-                    .attr("src")
-                    .trim()
-
-                if (
-                    src.contains(
-                        ".m3u8",
-                        ignoreCase = true
-                    )
-                ) {
-                    return absoluteStreamUrl(
-                        src
-                    )
-                }
-            }
-
-        document
-            .select("video[src]")
-            .forEach { element ->
-
-                val src = element
-                    .attr("src")
-                    .trim()
-
-                if (
-                    src.contains(
-                        ".m3u8",
-                        ignoreCase = true
-                    )
-                ) {
-                    return absoluteStreamUrl(
-                        src
-                    )
-                }
-            }
-
-        document
-            .select("[src]")
-            .forEach { element ->
-
-                val src = element
-                    .attr("src")
-                    .trim()
-
-                if (
-                    src.contains(
-                        ".m3u8",
-                        ignoreCase = true
-                    )
-                ) {
-                    return absoluteStreamUrl(
-                        src
-                    )
-                }
-            }
-
-        document
-            .select("a[href]")
-            .forEach { element ->
-
-                val href = element
-                    .attr("href")
-                    .trim()
-
-                if (
-                    href.contains(
-                        ".m3u8",
-                        ignoreCase = true
-                    )
-                ) {
-                    return absoluteStreamUrl(
-                        href
-                    )
-                }
-            }
-
-        return findM3u8(
-            document.html()
-        )
-    }
+    // ============================================================
+    // HTML / JAVASCRIPT İÇİNDEN M3U8
+    // ============================================================
 
     private fun findM3u8(
         html: String
@@ -477,50 +360,35 @@ class IzleMac : MainAPI() {
             .replace("&amp;", "&")
             .replace("\\u0026", "&")
 
-        val regex = Regex(
+        // Önce source src
+        val sourceRegex = Regex(
+            """(?i)<source[^>]+src\s*=\s*["']([^"']+\.m3u8[^"']*)["']"""
+        )
+
+        sourceRegex
+            .find(cleaned)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.takeIf { it.isNotBlank() }
+            ?.let {
+                return it
+            }
+
+        // Sonra herhangi bir m3u8 URL
+        val directRegex = Regex(
             """https?://[^"'\\<>\s]+?\.m3u8(?:\?[^"'\\<>\s]*)?""",
             RegexOption.IGNORE_CASE
         )
 
-        return regex
+        return directRegex
             .find(cleaned)
             ?.value
             ?.trim()
     }
 
-    private fun resolveUrl(
-        baseUrl: String,
-        relativeUrl: String
-    ): String {
-
-        val value = relativeUrl.trim()
-
-        if (value.isBlank()) {
-            return ""
-        }
-
-        if (
-            value.startsWith("http://") ||
-            value.startsWith("https://")
-        ) {
-            return value
-        }
-
-        if (value.startsWith("//")) {
-            return "https:$value"
-        }
-
-        return try {
-
-            java.net.URI(baseUrl)
-                .resolve(value)
-                .toString()
-
-        } catch (_: Exception) {
-
-            absoluteUrl(value)
-        }
-    }
+    // ============================================================
+    // URL
+    // ============================================================
 
     private fun absoluteUrl(
         url: String
@@ -550,11 +418,10 @@ class IzleMac : MainAPI() {
         url: String
     ): String {
 
-        val value = url.trim()
-
-        if (value.isBlank()) {
-            return ""
-        }
+        val value = url
+            .trim()
+            .replace("\\/", "/")
+            .replace("&amp;", "&")
 
         if (
             value.startsWith("http://") ||
@@ -567,8 +434,14 @@ class IzleMac : MainAPI() {
             return "https:$value"
         }
 
-        return absoluteUrl(value)
+        return absoluteUrl(
+            value
+        )
     }
+
+    // ============================================================
+    // QUERY
+    // ============================================================
 
     private fun getQueryParameter(
         url: String,
@@ -593,15 +466,21 @@ class IzleMac : MainAPI() {
                     pieces.size == 2 &&
                     pieces[0] == key
                 ) {
+
                     try {
+
                         java.net.URLDecoder.decode(
                             pieces[1],
                             "UTF-8"
                         )
-                    } catch (_: Exception) {
+
+                    } catch (_: Throwable) {
+
                         pieces[1]
                     }
+
                 } else {
+
                     null
                 }
             }
@@ -613,39 +492,15 @@ class IzleMac : MainAPI() {
     ): String {
 
         return try {
+
             java.net.URLEncoder.encode(
                 value,
                 "UTF-8"
             )
-        } catch (_: Exception) {
+
+        } catch (_: Throwable) {
+
             value
-        }
-    }
-
-    private fun getOrigin(
-        url: String
-    ): String {
-
-        return try {
-
-            val uri = java.net.URI(url)
-
-            val scheme = uri.scheme
-                ?: return mainUrl
-
-            val host = uri.host
-                ?: return mainUrl
-
-            val port = uri.port
-
-            if (port == -1) {
-                "$scheme://$host"
-            } else {
-                "$scheme://$host:$port"
-            }
-
-        } catch (_: Exception) {
-            mainUrl
         }
     }
 }
