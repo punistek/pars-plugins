@@ -44,3 +44,6 @@ project(":Tizam").projectDir = file("Tizam")
 
 include(":DiziFilmizle")
 project(":DiziFilmizle").projectDir = file("DiziFilmizle")
+
+include(":IzleMac")
+project(":IzleMac").projectDir = file("IzleMac")
