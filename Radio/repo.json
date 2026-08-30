@@ -1,0 +1,12 @@
+{
+  "manifestVersion": 1,
+  "name": "PARS Radyo Deposu",
+  "description": "PARS için kurulabilir dünya radyo sağlayıcıları.",
+  "pluginLists": [
+    "plugins.json"
+  ],
+  "apiServers": [
+    "https://de1.api.radio-browser.info",
+    "https://de2.api.radio-browser.info"
+  ]
+}
