@@ -4,15 +4,14 @@ import com.lagradost.cloudstream3.*
 import org.jsoup.nodes.Element
 
 class IzleMac : MainAPI() {
+
     override var mainUrl = "https://izlemac549.sbs"
     override var name = "IzleMac"
     override val hasMainPage = true
     override var lang = "tr"
     override val hasDownloadSupport = false
 
-    override val supportedTypes = setOf(
-        TvType.Live
-    )
+    override val supportedTypes = setOf(TvType.Live)
 
     private val headers = mapOf(
         "User-Agent" to USER_AGENT,
@@ -28,7 +27,7 @@ class IzleMac : MainAPI() {
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
-        // Kanal listesi tek sayfada bulunduğu için yalnız ilk sayfayı kullan.
+
         if (page > 1) {
             return newHomePageResponse(
                 request.name,
@@ -57,13 +56,13 @@ class IzleMac : MainAPI() {
     private fun toChannelResult(root: Element): SearchResponse? {
         val link = root.selectFirst("a.dblock[href], a[href]") ?: return null
 
-        val href = link.absUrl("href").ifBlank {
+        val pageUrl = link.absUrl("href").ifBlank {
             absoluteUrl(link.attr("href"))
         }
 
         if (
-            href.isBlank() ||
-            !href.contains("/canli-mac-izle/")
+            pageUrl.isBlank() ||
+            !pageUrl.contains("/canli-mac-izle/")
         ) return null
 
         val title = root
@@ -73,12 +72,18 @@ class IzleMac : MainAPI() {
             ?.takeIf { it.isNotBlank() }
             ?: return null
 
-        // Site kanal görsellerini CSS class/ID ile tanımlıyor.
-        // Sabit olmayan bir logo URL'si uydurmak yerine katalog güvenli biçimde
-        // kanal adı + sayfa URL'si üzerinden oluşturuluyor.
+        /*
+         * Site kanal kimliğini CSS sınıfında da taşıyor:
+         *
+         * tvicx-5062
+         *
+         * Bunu URL'ye eklemiyoruz. Kanal kartının data alanı gerçek
+         * kanal sayfası olarak kalıyor. load() içinde player URL'si
+         * sayfanın kendi data-player-url değerinden okunuyor.
+         */
         return newLiveSearchResponse(
             title,
-            href,
+            pageUrl,
             TvType.Live
         )
     }
@@ -107,11 +112,11 @@ class IzleMac : MainAPI() {
 
         val title = document
             .selectFirst("strong.name.tvcp, h1, meta[property=og:title]")
-            ?.let {
-                if (it.tagName() == "meta") {
-                    it.attr("content").substringBefore("|").trim()
+            ?.let { element ->
+                if (element.tagName() == "meta") {
+                    element.attr("content").substringBefore("|").trim()
                 } else {
-                    it.text().trim()
+                    element.text().trim()
                 }
             }
             ?.takeIf { it.isNotBlank() }
@@ -132,14 +137,68 @@ class IzleMac : MainAPI() {
             ?.let(::absoluteUrl)
             ?.takeIf { it.isNotBlank() }
 
+        /*
+         * Kanal sayfasının ilan ettiği player adresini bul.
+         *
+         * Örnek:
+         * /wp-content/themes/ikisifirbirdokuz/match-center.php?id=5062
+         *
+         * Selector'ları biraz geniş tuttuk; site attribute'u farklı bir
+         * elemente taşısa bile public HTML'deki player URL'sini okuyabilir.
+         */
+        val playerUrl = findPlayerUrl(document)
+            ?: throw ErrorLoadingException(
+                "Kanal player adresi bulunamadı."
+            )
+
+        /*
+         * Runtime'a artık kanal sayfasını değil, sayfanın açıkça ilan
+         * ettiği player URL'sini data olarak veriyoruz.
+         */
         return newLiveStreamLoadResponse(
             title,
             url,
-            url
+            playerUrl
         ) {
             posterUrl = poster
             plot = description
         }
+    }
+
+    private fun findPlayerUrl(document: org.jsoup.nodes.Document): String? {
+        // Öncelik: data-player-url
+        document.select("[data-player-url]").forEach { element ->
+            val value = element.attr("data-player-url").trim()
+            if (value.isNotBlank()) {
+                return absoluteUrl(value)
+            }
+        }
+
+        // Site yapısı değişirse match-center bağlantısını doğrudan ara.
+        document.select("a[href], iframe[src], [src]").forEach { element ->
+            val raw = when {
+                element.hasAttr("href") -> element.attr("href")
+                element.hasAttr("src") -> element.attr("src")
+                else -> ""
+            }.trim()
+
+            if (raw.contains("match-center.php", ignoreCase = true)) {
+                return absoluteUrl(raw)
+            }
+        }
+
+        // Son fallback: HTML içinden match-center.php?id=... değerini bul.
+        val html = document.html()
+
+        val regex = Regex(
+            """(?:https?:)?//[^"'<> ]*match-center\.php\?id=\d+|/[^"'<> ]*match-center\.php\?id=\d+""",
+            RegexOption.IGNORE_CASE
+        )
+
+        return regex.find(html)
+            ?.value
+            ?.replace("&amp;", "&")
+            ?.let(::absoluteUrl)
     }
 
     override suspend fun loadLinks(
@@ -148,18 +207,33 @@ class IzleMac : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (com.lagradost.cloudstream3.utils.ExtractorLink) -> Unit
     ): Boolean {
-        // V1 yalnız sitenin açık HTML kanal kataloğunu sağlar.
-        // Dinamik/korumalı üçüncü taraf yayın URL'leri çözülmez.
+
+        /*
+         * data artık:
+         *
+         * https://izlemac549.sbs/.../match-center.php?id=XXXX
+         *
+         * Burada korumalı/dinamik üçüncü taraf HLS adresi çıkarmıyoruz.
+         * Runtime'ın bir web/player URL'si açma desteği varsa bu data
+         * değeri doğrudan ona teslim edilebilir.
+         */
         return false
     }
 
     private fun absoluteUrl(url: String): String {
-        if (url.isBlank()) return ""
-        if (url.startsWith("http://") || url.startsWith("https://")) return url
-        return if (url.startsWith("//")) {
-            "https:$url"
-        } else {
-            "$mainUrl/${url.trimStart('/')}"
+        val value = url.trim()
+
+        if (value.isBlank()) return ""
+
+        if (
+            value.startsWith("http://") ||
+            value.startsWith("https://")
+        ) return value
+
+        if (value.startsWith("//")) {
+            return "https:$value"
         }
+
+        return "$mainUrl/${value.trimStart('/')}"
     }
 }
