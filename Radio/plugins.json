@@ -1,0 +1,61 @@
+{
+  "manifestVersion": 1,
+  "plugins": [
+    {
+      "id": "turkey",
+      "name": "Türkiye Radyoları",
+      "description": "Türkiye'deki internet radyoları",
+      "icon": "🇹🇷",
+      "version": 1,
+      "manifest": "plugins/TurkeyRadio/provider.json"
+    },
+    {
+      "id": "germany",
+      "name": "Almanya Radyoları",
+      "description": "Almanya'daki internet radyoları",
+      "icon": "🇩🇪",
+      "version": 1,
+      "manifest": "plugins/GermanyRadio/provider.json"
+    },
+    {
+      "id": "austria",
+      "name": "Avusturya Radyoları",
+      "description": "Avusturya'daki internet radyoları",
+      "icon": "🇦🇹",
+      "version": 1,
+      "manifest": "plugins/AustriaRadio/provider.json"
+    },
+    {
+      "id": "world",
+      "name": "Dünya Radyoları",
+      "description": "Dünya genelindeki popüler radyolar",
+      "icon": "🌍",
+      "version": 1,
+      "manifest": "plugins/WorldRadio/provider.json"
+    },
+    {
+      "id": "pop",
+      "name": "Pop Radyoları",
+      "description": "Pop müzik radyoları",
+      "icon": "🎵",
+      "version": 1,
+      "manifest": "plugins/PopRadio/provider.json"
+    },
+    {
+      "id": "rock",
+      "name": "Rock Radyoları",
+      "description": "Rock müzik radyoları",
+      "icon": "🎸",
+      "version": 1,
+      "manifest": "plugins/RockRadio/provider.json"
+    },
+    {
+      "id": "news",
+      "name": "Haber Radyoları",
+      "description": "Haber ve konuşma radyoları",
+      "icon": "📰",
+      "version": 1,
+      "manifest": "plugins/NewsRadio/provider.json"
+    }
+  ]
+}
