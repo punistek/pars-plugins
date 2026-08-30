@@ -11,6 +11,7 @@ on:
       - "ShowTV/**"
       - "Tizam/**"
       - "DiziFilmizle/**"
+      - "IzleMac/**"
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"
@@ -42,7 +43,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build plugins and plugins.json
-        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make :ShowTV:make :Tizam:make :DiziFilmizle:make makePluginsJson --refresh-dependencies
+        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make :ShowTV:make :Tizam:make :DiziFilmizle:make :IzleMac:make makePluginsJson --refresh-dependencies
 
       - name: Verify generated files
         run: |
@@ -54,6 +55,7 @@ jobs:
           test -f ShowTV/build/ShowTV.cs3
           test -f Tizam/build/Tizam.cs3
           test -f DiziFilmizle/build/DiziFilmizle.cs3
+          test -f IzleMac/build/IzleMac.cs3
           test -f build/plugins.json
 
       - name: Prepare builds branch files
@@ -66,6 +68,7 @@ jobs:
           cp ShowTV/build/ShowTV.cs3 /tmp/pars-builds/ShowTV.cs3
           cp Tizam/build/Tizam.cs3 /tmp/pars-builds/Tizam.cs3
           cp DiziFilmizle/build/DiziFilmizle.cs3 /tmp/pars-builds/DiziFilmizle.cs3
+          cp IzleMac/build/IzleMac.cs3 /tmp/pars-builds/IzleMac.cs3
           cp build/plugins.json /tmp/pars-builds/plugins.json
 
           echo "=== PUBLISH CONTENT ==="
@@ -84,7 +87,7 @@ jobs:
 
           cp -a /tmp/pars-builds/. .
 
-          git add FilmMakinesi.cs3 FilmizleHell.cs3 ShowTV.cs3 Tizam.cs3 DiziFilmizle.cs3 plugins.json
+          git add FilmMakinesi.cs3 FilmizleHell.cs3 ShowTV.cs3 Tizam.cs3 DiziFilmizle.cs3 IzleMac.cs3 plugins.json
           git commit -m "Build plugins ${GITHUB_SHA::7}"
 
           git push --force \
