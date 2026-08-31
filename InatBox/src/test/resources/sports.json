@@ -1,0 +1,554 @@
+[
+  {
+    "chName": "@inattvapk",
+    "chUrl": "https://catalog.example/stream/0",
+    "chType": "link_mode",
+    "chImg": "https://pbs.twimg.com/media/FwZ_LCVXoAAaUZu?format=png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "İnat TV Link",
+    "chUrl": "https://catalog.example/stream/1",
+    "chType": "link_mode",
+    "chImg": "https://pbs.twimg.com/media/GbYEJCoXkAAXKEr?format=png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 1 | A",
+    "chUrl": "https://catalog.example/stream/2",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport1_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 1 | B",
+    "chUrl": "https://catalog.example/stream/3",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport1_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 1 | C",
+    "chUrl": "https://catalog.example/stream/4",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport1_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Premium",
+    "chUrl": "https://catalog.example/stream/5",
+    "chType": "link_mode",
+    "chImg": "https://i.hizliresim.com/r5vop2f.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 2 | A",
+    "chUrl": "https://catalog.example/stream/6",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport2_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 2 | B",
+    "chUrl": "https://catalog.example/stream/7",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport2_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 3 | A",
+    "chUrl": "https://catalog.example/stream/8",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport3_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 3 | B",
+    "chUrl": "https://catalog.example/stream/9",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport3_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 4 | A",
+    "chUrl": "https://catalog.example/stream/10",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport4_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 4 | B",
+    "chUrl": "https://catalog.example/stream/11",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport4_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 5 | A",
+    "chUrl": "https://catalog.example/stream/12",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/beIN_SPORTS5_250x150.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 5 | B",
+    "chUrl": "https://catalog.example/stream/13",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/beIN_SPORTS5_250x150.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports Max 1",
+    "chUrl": "https://catalog.example/stream/14",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/bein_sports_yeni_MAX_1_250x150_.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports Max 2",
+    "chUrl": "https://catalog.example/stream/15",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/bein_sports_yeni_MAX_2_250x150_.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports Haber",
+    "chUrl": "https://catalog.example/stream/16",
+    "chType": "web_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/bein_sports_yeni_HABER_250x150_.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Hangi Maç Var?",
+    "chUrl": "https://catalog.example/stream/17",
+    "chType": "web_mode",
+    "chImg": "https://i.hizliresim.com/id1kd0s.jpg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Maç Seç İzle",
+    "chUrl": "https://catalog.example/stream/18",
+    "chType": "web_mode",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport1_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "S Sport 1 | A",
+    "chUrl": "https://catalog.example/stream/19",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/D/G-/13120/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "S Sport 1 | B",
+    "chUrl": "https://catalog.example/stream/20",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/D/G-/13120/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "S Sport 2 | A",
+    "chUrl": "https://catalog.example/stream/21",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/t/VK/20856/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "S Sport 2 | B",
+    "chUrl": "https://catalog.example/stream/22",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/t/VK/20856/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "S Sport Plus",
+    "chUrl": "https://catalog.example/stream/23",
+    "chType": "SSprDrm_mode",
+    "chImg": "https://app.ssportplus.com/Images/Logo@2x.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Sky Sports F1",
+    "chUrl": "https://catalog.example/stream/24",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.ibb.co/BVK3Pbgk/f1.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Sports TV | A",
+    "chUrl": "https://catalog.example/stream/25",
+    "chType": "live_url_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/S/IP/11910/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Eurosport 1 | A",
+    "chUrl": "https://catalog.example/stream/26",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/L/Ra/11892/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Eurosport 2 | A",
+    "chUrl": "https://catalog.example/stream/27",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/h/Ws/11900/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Spor Smart 1 | A",
+    "chUrl": "https://catalog.example/stream/28",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/p/el/11909/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Spor Smart 1 | B",
+    "chUrl": "https://catalog.example/stream/29",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/p/el/11909/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Spor Smart 2 | A",
+    "chUrl": "https://catalog.example/stream/30",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/a/Bl/14585/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Spor Smart 2 | B",
+    "chUrl": "https://catalog.example/stream/31",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/a/Bl/14585/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Fight Box HD",
+    "chUrl": "https://catalog.example/stream/32",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/6/7E/11911/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "NBA TV | A",
+    "chUrl": "https://catalog.example/stream/33",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/o/DZ/11903/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "A SPOR | A",
+    "chUrl": "https://catalog.example/stream/34",
+    "chType": "tekli_regex_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/r/qJ/13729/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "A SPOR | B",
+    "chUrl": "https://catalog.example/stream/35",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/r/qJ/13729/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Trt Spor | A",
+    "chUrl": "https://catalog.example/stream/36",
+    "chType": "live_url_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/l/MK/11888/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Trt Spor | B",
+    "chUrl": "https://catalog.example/stream/37",
+    "chType": "live_url_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/l/MK/11888/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Trt Spor | C",
+    "chUrl": "https://catalog.example/stream/38",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/l/MK/11888/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Trt Spor Yıldız | A",
+    "chUrl": "https://catalog.example/stream/39",
+    "chType": "live_url_mode",
+    "chImg": "https://cdn.karar.com/news/1478958.jpg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Trt Spor Yıldız | B",
+    "chUrl": "https://catalog.example/stream/40",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://cdn.karar.com/news/1478958.jpg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "HT Spor",
+    "chUrl": "https://catalog.example/stream/41",
+    "chType": "live_url_mode",
+    "chImg": "https://www.htspor.com/images/manifest/social-share-logo.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tabii Spor",
+    "chUrl": "https://catalog.example/stream/42",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.ibb.co/KqrqmMP/channels4-profile-removebg-preview.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tabii Spor 1",
+    "chUrl": "https://catalog.example/stream/43",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.ibb.co/KqrqmMP/channels4-profile-removebg-preview.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tabii Spor 2",
+    "chUrl": "https://catalog.example/stream/44",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.ibb.co/KqrqmMP/channels4-profile-removebg-preview.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tabii Spor 3",
+    "chUrl": "https://catalog.example/stream/45",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.ibb.co/KqrqmMP/channels4-profile-removebg-preview.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tabii Spor 4",
+    "chUrl": "https://catalog.example/stream/46",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.ibb.co/KqrqmMP/channels4-profile-removebg-preview.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tabii Spor 5",
+    "chUrl": "https://catalog.example/stream/47",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.ibb.co/KqrqmMP/channels4-profile-removebg-preview.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tabii Spor 6",
+    "chUrl": "https://catalog.example/stream/48",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.ibb.co/KqrqmMP/channels4-profile-removebg-preview.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "EXXENSPOR 01",
+    "chUrl": "https://catalog.example/stream/49",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.hizliresim.com/pj1ewy2.jpeg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "EXXENSPOR 02",
+    "chUrl": "https://catalog.example/stream/50",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.hizliresim.com/pj1ewy2.jpeg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "EXXENSPOR 03",
+    "chUrl": "https://catalog.example/stream/51",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.hizliresim.com/pj1ewy2.jpeg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "EXXENSPOR 04",
+    "chUrl": "https://catalog.example/stream/52",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.hizliresim.com/pj1ewy2.jpeg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "EXXENSPOR 05",
+    "chUrl": "https://catalog.example/stream/53",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.hizliresim.com/pj1ewy2.jpeg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "EXXENSPOR 06",
+    "chUrl": "https://catalog.example/stream/54",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.hizliresim.com/pj1ewy2.jpeg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "EXXENSPOR 07",
+    "chUrl": "https://catalog.example/stream/55",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.hizliresim.com/pj1ewy2.jpeg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "EXXENSPOR 08",
+    "chUrl": "https://catalog.example/stream/56",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://i.hizliresim.com/pj1ewy2.jpeg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tivibu Spor 1",
+    "chUrl": "https://catalog.example/stream/57",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://tvprofil.com/img/kanali-logo/Tivibu_Spor_TR_logo.png?1643812371",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tivibu Spor 2",
+    "chUrl": "https://catalog.example/stream/58",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://tvprofil.com/img/kanali-logo/Tivibu_Spor_TR_logo.png?1643812371",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tivibu Spor 3",
+    "chUrl": "https://catalog.example/stream/59",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://tvprofil.com/img/kanali-logo/Tivibu_Spor_TR_logo.png?1643812371",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tivibu Spor 4",
+    "chUrl": "https://catalog.example/stream/60",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://tvprofil.com/img/kanali-logo/Tivibu_Spor_TR_logo.png?1643812371",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Gs TV",
+    "chUrl": "https://catalog.example/stream/61",
+    "chType": "live_url_mode",
+    "chImg": "https://imgrosetta.mynet.com.tr/file/2511387/2511387-700x400.jpg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Fb TV",
+    "chUrl": "https://catalog.example/stream/62",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://media.fenerbahce.org/FB/media/FB/Images/Logo/logo.png?ext=.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tjk TV",
+    "chUrl": "https://catalog.example/stream/63",
+    "chType": "live_url_mode",
+    "chImg": "https://i.ibb.co/Wp2FDGc2/TJKTV-Logo.jpg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Tay TV",
+    "chUrl": "https://catalog.example/stream/64",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://img.dsmartgo.com.tr/content/P/4W/13572/Thumbnail.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Ekol Sports",
+    "chUrl": "https://catalog.example/stream/65",
+    "chType": "live_url_mode",
+    "chImg": "https://yt3.googleusercontent.com/DzgqmDc_yXk6sZdoix3kaqkdU8SHn2fViNGsYeljLVOGJBKjDcccCX9UFA3ozp-_6pd8J34l4ME=s900-c-k-c0x00ffffff-no-rj",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "CBC Sport",
+    "chUrl": "https://catalog.example/stream/66",
+    "chType": "tekli_regex_lb_sh_3_mode",
+    "chImg": "https://iaftm.tmgrup.com.tr/73ad84/1200/627/0/0/1200/627?u=https://iftm.tmgrup.com.tr/2022/02/24/cbc-sport-nasil-izlenir-cbc-sport-uydu-ve-frekans-bilgileri-slavia-prag-fenerbahce-sifresiz-cbc-sport-izle-1645707326066.jpeg",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "Türkmen Spor",
+    "chUrl": "https://catalog.example/stream/67",
+    "chType": "live_url_mode",
+    "chImg": "https://static.wikia.nocookie.net/logopedia/images/b/be/Turkmenistan_Sport.png/revision/latest?cb=20211225160814",
+    "chReg": "null",
+    "chHeaders": "null"
+  },
+  {
+    "chName": "beIN Sports 1 | test",
+    "chUrl": "https://catalog.example/stream/68",
+    "chType": "tekli_regex_lb_sh_3_jzvd",
+    "chImg": "https://mediacms01.digiturkplay.com/channel_logo/w2_Bein_Sport1_250x150_2022.png",
+    "chReg": "null",
+    "chHeaders": "null"
+  }
+]
