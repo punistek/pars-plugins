@@ -5,20 +5,20 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
+import org.json.JSONArray
 import org.json.JSONObject
-import org.jsoup.nodes.Element
 import java.net.URLDecoder
 import java.net.URLEncoder
 
 class TestProvider : MainAPI() {
 
-    override var mainUrl = "https://www.betmarinotv1101.site"
+    override var mainUrl = "https://patronlig20.cfd"
     override var name = "TEST"
     override val hasMainPage = true
     override var lang = "tr"
     override val supportedTypes = setOf(TvType.Live)
 
-    private val dataHost = "https://data-reality.com"
+    private val dataHost = "https://patronsports2.cfd"
     private val channelsUrl = "$dataHost/channels.php"
     private val matchesUrl = "$dataHost/matches.php"
     private val domainUrl = "$dataHost/domain.php"
@@ -28,27 +28,20 @@ class TestProvider : MainAPI() {
             "AppleWebKit/537.36 (KHTML, like Gecko) " +
             "Chrome/151.0.0.0 Safari/537.36"
 
-    private val browserHeaders: Map<String, String>
+    private val dataHeaders: Map<String, String>
         get() = mapOf(
-            "Accept" to "*/*",
+            "Accept" to "application/json,text/plain,*/*",
             "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
             "Cache-Control" to "no-cache",
             "Origin" to mainUrl,
             "Pragma" to "no-cache",
-            "Priority" to "u=1, i",
             "Referer" to "$mainUrl/",
-            "Sec-CH-UA" to "\"Not=A?Brand\";v=\"99\", \"Google Chrome\";v=\"151\", \"Chromium\";v=\"151\"",
-            "Sec-CH-UA-Mobile" to "?0",
-            "Sec-CH-UA-Platform" to "\"Windows\"",
-            "Sec-Fetch-Dest" to "empty",
-            "Sec-Fetch-Mode" to "cors",
-            "Sec-Fetch-Site" to "cross-site",
             "User-Agent" to userAgent,
         )
 
     override val mainPage = mainPageOf(
-        "channels" to "Canlı Kanallar",
-        "matches" to "Canlı Maçlar",
+        "channels" to "7/24 Kanallar",
+        "matches" to "Maçlar",
     )
 
     override suspend fun getMainPage(
@@ -118,6 +111,17 @@ class TestProvider : MainAPI() {
 
         val baseUrl = resolveStreamBaseUrl() ?: return false
         val streamUrl = "${baseUrl.trimEnd('/')}/$channelId/mono.m3u8"
+        val playerPage = "$mainUrl/ch.html?id=${urlEncode(channelId)}"
+
+        val streamHeaders = mapOf(
+            "Accept" to "*/*",
+            "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Cache-Control" to "no-cache",
+            "Origin" to mainUrl,
+            "Pragma" to "no-cache",
+            "Referer" to playerPage,
+            "User-Agent" to userAgent,
+        )
 
         callback(
             newExtractorLink(
@@ -126,8 +130,8 @@ class TestProvider : MainAPI() {
                 url = streamUrl,
                 type = ExtractorLinkType.M3U8,
             ) {
-                referer = "$mainUrl/"
-                headers = browserHeaders
+                referer = playerPage
+                headers = streamHeaders
                 quality = Qualities.Unknown.value
             },
         )
@@ -138,7 +142,7 @@ class TestProvider : MainAPI() {
     private suspend fun resolveStreamBaseUrl(): String? {
         val response = app.get(
             domainUrl,
-            headers = browserHeaders,
+            headers = dataHeaders,
         )
 
         val text = response.text.trim()
@@ -156,93 +160,173 @@ class TestProvider : MainAPI() {
     }
 
     private suspend fun loadChannelItems(): List<SearchResponse> {
-        val document = app.get(
+        val text = app.get(
             channelsUrl,
-            headers = browserHeaders,
-        ).document
+            headers = dataHeaders,
+        ).text.trim()
 
-        return document
-            .select("a.single-match[href*='channel?id=']")
-            .mapNotNull(::channelElementToSearchResponse)
-            .distinctBy { it.url }
-    }
+        val array = parseArray(text, "channels") ?: return emptyList()
+        val result = ArrayList<SearchResponse>()
 
-    private suspend fun loadMatchItems(): List<SearchResponse> {
-        val document = app.get(
-            matchesUrl,
-            headers = browserHeaders,
-        ).document
+        for (i in 0 until array.length()) {
+            val item = array.optJSONObject(i) ?: continue
+            val streamSource = item.optString("URL", "").trim()
+            val channelId = extractChannelId(streamSource) ?: continue
 
-        return document
-            .select("a.single-match[href*='channel?id=']")
-            .mapNotNull(::matchElementToSearchResponse)
-            .distinctBy { it.url }
-    }
+            val title = firstNonBlank(
+                item.optString("Mac", ""),
+                item.optString("name", ""),
+                item.optString("Name", ""),
+                item.optString("channel_name", ""),
+            ) ?: "Kanal ${i + 1}"
 
-    private fun channelElementToSearchResponse(element: Element): SearchResponse? {
-        val channelId = extractChannelId(element.attr("href")) ?: return null
+            val poster = normalizeAssetUrl(
+                firstNonBlank(
+                    item.optString("Logo", ""),
+                    item.optString("logo", ""),
+                    item.optString("poster", ""),
+                ),
+            )
 
-        val title = element
-            .selectFirst(".teams .home")
-            ?.text()
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?: return null
-
-        val poster = element
-            .selectFirst(".teams .away img")
-            ?.attr("src")
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?.let(::absoluteSiteUrl)
-
-        return newLiveSearchResponse(
-            title,
-            buildLoadUrl(channelId, title, poster),
-            TvType.Live,
-        ) {
-            posterUrl = poster
-        }
-    }
-
-    private fun matchElementToSearchResponse(element: Element): SearchResponse? {
-        val channelId = extractChannelId(element.attr("href")) ?: return null
-
-        val home = element.selectFirst(".teams .home")?.text()?.trim().orEmpty()
-        val away = element.selectFirst(".teams .away")?.text()?.trim().orEmpty()
-        val sport = element.selectFirst(".date")?.text()?.trim().orEmpty()
-        val event = element.selectFirst(".event")?.text()?.trim().orEmpty()
-
-        val title = when {
-            home.isNotEmpty() && away.isNotEmpty() -> "$home - $away"
-            home.isNotEmpty() -> home
-            event.isNotEmpty() -> event
-            else -> return null
-        }
-
-        val poster = element
-            .selectFirst("img")
-            ?.attr("src")
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?.let(::absoluteSiteUrl)
-
-        val displayTitle = buildString {
-            append(title)
-            if (event.isNotEmpty()) append(" • ").append(event)
-            if (sport.isNotEmpty() && !event.contains(sport, ignoreCase = true)) {
-                append(" • ").append(sport)
+            result += newLiveSearchResponse(
+                title,
+                buildLoadUrl(channelId, title, poster),
+                TvType.Live,
+            ) {
+                posterUrl = poster
             }
         }
 
-        return newLiveSearchResponse(
-            displayTitle,
-            buildLoadUrl(channelId, displayTitle, poster),
-            TvType.Live,
-        ) {
-            posterUrl = poster
+        return result.distinctBy { it.url }
+    }
+
+    private suspend fun loadMatchItems(): List<SearchResponse> {
+        val text = app.get(
+            matchesUrl,
+            headers = dataHeaders,
+        ).text.trim()
+
+        val array = parseArray(text, "matches") ?: return emptyList()
+        val result = ArrayList<SearchResponse>()
+
+        for (i in 0 until array.length()) {
+            val item = array.optJSONObject(i) ?: continue
+            val streamSource = item.optString("URL", "").trim()
+            val channelId = extractChannelId(streamSource) ?: continue
+
+            val home = firstNonBlank(
+                item.optString("HomeTeam", ""),
+                item.optString("home", ""),
+            ).orEmpty()
+
+            val away = firstNonBlank(
+                item.optString("AwayTeam", ""),
+                item.optString("away", ""),
+            ).orEmpty()
+
+            val matchName = firstNonBlank(
+                item.optString("Mac", ""),
+                item.optString("name", ""),
+            ).orEmpty()
+
+            val time = firstNonBlank(
+                item.optString("Time", ""),
+                item.optString("time", ""),
+            ).orEmpty()
+
+            val league = firstNonBlank(
+                item.optString("league", ""),
+                item.optString("League", ""),
+            ).orEmpty()
+
+            val title = when {
+                home.isNotEmpty() && away.isNotEmpty() -> "$home - $away"
+                matchName.isNotEmpty() -> matchName
+                else -> "Canlı Maç ${i + 1}"
+            }
+
+            val displayTitle = buildString {
+                append(title)
+                if (time.isNotEmpty()) append(" • ").append(time)
+                if (league.isNotEmpty()) append(" • ").append(league)
+            }
+
+            val poster = normalizeAssetUrl(
+                firstNonBlank(
+                    item.optString("Logo", ""),
+                    item.optString("logo", ""),
+                    item.optString("HomeLogo", ""),
+                ),
+            )
+
+            result += newLiveSearchResponse(
+                displayTitle,
+                buildLoadUrl(channelId, displayTitle, poster),
+                TvType.Live,
+            ) {
+                posterUrl = poster
+            }
+        }
+
+        return result.distinctBy { it.url }
+    }
+
+    private fun parseArray(text: String, objectKey: String): JSONArray? {
+        if (text.isBlank()) return null
+
+        return runCatching {
+            when {
+                text.startsWith("[") -> JSONArray(text)
+                text.startsWith("{") -> {
+                    val root = JSONObject(text)
+                    root.optJSONArray(objectKey)
+                        ?: root.optJSONArray("data")
+                }
+                else -> null
+            }
+        }.getOrNull()
+    }
+
+    private fun extractChannelId(source: String): String? {
+        if (source.isBlank()) return null
+
+        val decoded = runCatching { urlDecode(source) }.getOrDefault(source)
+
+        val fromQuery = Regex("[?&]id=([^&#]+)", RegexOption.IGNORE_CASE)
+            .find(decoded)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+
+        if (fromQuery != null) {
+            return fromQuery.replace(Regex("[^A-Za-z0-9_-]"), "")
+                .takeIf { it.isNotEmpty() }
+        }
+
+        // Endpoint doğrudan kanal ID'si döndürürse onu da kabul et.
+        if (!decoded.contains("/") && !decoded.contains("?") && !decoded.contains("&")) {
+            return decoded.replace(Regex("[^A-Za-z0-9_-]"), "")
+                .takeIf { it.isNotEmpty() }
+        }
+
+        return null
+    }
+
+    private fun normalizeAssetUrl(value: String?): String? {
+        val raw = value?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+
+        return when {
+            raw.startsWith("http://", ignoreCase = true) ||
+                raw.startsWith("https://", ignoreCase = true) -> raw
+            raw.startsWith("//") -> "https:$raw"
+            raw.startsWith("/") -> "$dataHost$raw"
+            else -> "$dataHost/$raw"
         }
     }
+
+    private fun firstNonBlank(vararg values: String): String? =
+        values.firstOrNull { it.isNotBlank() }?.trim()
 
     private fun buildLoadUrl(
         channelId: String,
@@ -251,7 +335,7 @@ class TestProvider : MainAPI() {
     ): String {
         return buildString {
             append(mainUrl)
-            append("/channel?id=")
+            append("/ch.html?id=")
             append(urlEncode(channelId))
             append("&title=")
             append(urlEncode(title))
@@ -263,48 +347,25 @@ class TestProvider : MainAPI() {
         }
     }
 
-    private fun extractChannelId(href: String): String? {
-        val value = Regex("""(?:\?|&)id=([^&#"' ]+)""")
-            .find(href)
-            ?.groupValues
-            ?.getOrNull(1)
-            ?: return null
-
-        return urlDecode(value)
-            .trim()
-            .takeIf { it.isNotEmpty() }
-    }
-
-    private fun absoluteSiteUrl(src: String): String {
-        return when {
-            src.startsWith("https://", ignoreCase = true) -> src
-            src.startsWith("http://", ignoreCase = true) -> src
-            src.startsWith("//") -> "https:$src"
-            src.startsWith("/") -> "$mainUrl$src"
-            else -> "$mainUrl/$src"
-        }
-    }
-
-    private fun getQueryParameter(
-        url: String,
-        key: String,
-    ): String? {
+    private fun getQueryParameter(url: String, key: String): String? {
         val query = url.substringAfter('?', "")
         if (query.isEmpty()) return null
 
         return query
             .split('&')
-            .firstOrNull { part ->
-                part.substringBefore('=', "") == key
+            .firstNotNullOfOrNull { part ->
+                val pair = part.split('=', limit = 2)
+                if (pair.size == 2 && pair[0].equals(key, ignoreCase = true)) {
+                    pair[1]
+                } else {
+                    null
+                }
             }
-            ?.substringAfter('=', "")
     }
 
     private fun urlEncode(value: String): String =
         URLEncoder.encode(value, Charsets.UTF_8.name())
 
     private fun urlDecode(value: String): String =
-        runCatching {
-            URLDecoder.decode(value, Charsets.UTF_8.name())
-        }.getOrDefault(value)
+        URLDecoder.decode(value, Charsets.UTF_8.name())
 }
