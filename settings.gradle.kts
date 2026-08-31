@@ -47,3 +47,6 @@ project(":DiziFilmizle").projectDir = file("DiziFilmizle")
 
 include(":IzleMac")
 project(":IzleMac").projectDir = file("IzleMac")
+
+include(":TEST")
+project(":TEST").projectDir = file("TEST")
