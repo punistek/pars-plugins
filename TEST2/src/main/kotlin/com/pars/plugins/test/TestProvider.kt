@@ -118,6 +118,7 @@ class TestProvider : MainAPI() {
 
         val baseUrl = resolveStreamBaseUrl() ?: return false
         val streamUrl = "${baseUrl.trimEnd('/')}/$channelId/mono.m3u8"
+        val playerPage = "$mainUrl/channel?id=${urlEncode(channelId)}"
 
         callback(
             newExtractorLink(
@@ -126,8 +127,15 @@ class TestProvider : MainAPI() {
                 url = streamUrl,
                 type = ExtractorLinkType.M3U8,
             ) {
-                referer = "$mainUrl/"
-                headers = browserHeaders
+                // KRİTİK:
+                // Media3 açamazsa uygulamadaki generic WebView fallback gerçek
+                // kanal sayfasını buradan öğrenir. Ana sayfa (mainUrl/) verilirse
+                // fallback hangi kanalı açacağını bilemez.
+                referer = playerPage
+                headers = browserHeaders + mapOf(
+                    "Referer" to playerPage,
+                    "Origin" to mainUrl,
+                )
                 quality = Qualities.Unknown.value
             },
         )
