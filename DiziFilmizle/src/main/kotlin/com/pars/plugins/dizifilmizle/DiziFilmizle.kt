@@ -215,7 +215,58 @@ class DiziFilmizle : MainAPI() {
             }
         }
 
-        return found || embeds.isNotEmpty()
+        // KRİTİK WEB FALLBACK:
+        // Embed bulundu ama extractor gerçek m3u8/mp4 üretemediyse loadLinks'i boş
+        // bırakma. Embed sayfasını PlayerSource olarak gönder. Uygulamadaki genel
+        // Media3 -> WebView fallback mekanizması bu URL'yi açabilir.
+        //
+        // Böylece "loadLink yayın adresi döndürülemedi" aşamasında player daha
+        // açılmadan işlem kesilmez.
+        if (!found && embeds.isNotEmpty()) {
+            embeds.forEach { embed ->
+                callback(
+                    newExtractorLink(
+                        name,
+                        "DiziFilmizle Web",
+                        embed
+                    ) {
+                        this.referer = pageUrl
+                        this.quality = Qualities.Unknown.value
+                        this.type = ExtractorLinkType.VIDEO
+                        this.headers = mapOf(
+                            "Referer" to pageUrl,
+                            "User-Agent" to USER_AGENT
+                        )
+                    }
+                )
+            }
+            found = true
+        }
+
+        // Son güvenlik ağı:
+        // Sayfanın statik HTML/Next payload'ından embed dahi çıkarılamazsa yine
+        // boş dönme. Filmin gerçek sayfasını Web fallback kaynağı olarak gönder.
+        // WebView tarafında sitenin kendi JS player'ı çalışır.
+        if (!found) {
+            callback(
+                newExtractorLink(
+                    name,
+                    "DiziFilmizle Web",
+                    pageUrl
+                ) {
+                    this.referer = pageUrl
+                    this.quality = Qualities.Unknown.value
+                    this.type = ExtractorLinkType.VIDEO
+                    this.headers = mapOf(
+                        "Referer" to pageUrl,
+                        "User-Agent" to USER_AGENT
+                    )
+                }
+            )
+            found = true
+        }
+
+        return found
     }
 
     private fun parseSeriesCards(doc: Document): List<SearchResponse> {
