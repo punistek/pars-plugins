@@ -13,7 +13,7 @@ import java.net.URLEncoder
 class TestProvider : MainAPI() {
 
     override var mainUrl = "https://www.betmarinotv1101.site"
-    override var name = "TEST"
+    override var name = "TEST2"
     override val hasMainPage = true
     override var lang = "tr"
     override val supportedTypes = setOf(TvType.Live)
