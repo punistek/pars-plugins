@@ -50,3 +50,6 @@ project(":IzleMac").projectDir = file("IzleMac")
 
 include(":TEST")
 project(":TEST").projectDir = file("TEST")
+
+include(":TEST2")
+project(":TEST2").projectDir = file("TEST2")
