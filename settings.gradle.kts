@@ -56,3 +56,41 @@ project(":TEST2").projectDir = file("TEST2")
 
 include(":common")
 project(":common").projectDir = file("common")
+
+// TurkSpor kaynak paketinden alınan GPL-3.0 modüller (AslanTV hariç)
+include(":ArdaSpor")
+project(":ArdaSpor").projectDir = file("ArdaSpor")
+
+include(":BeyazElma")
+project(":BeyazElma").projectDir = file("BeyazElma")
+
+include(":Crex")
+project(":Crex").projectDir = file("Crex")
+
+include(":InatBox")
+project(":InatBox").projectDir = file("InatBox")
+
+include(":InatTV")
+project(":InatTV").projectDir = file("InatTV")
+
+include(":InterSporTV")
+project(":InterSporTV").projectDir = file("InterSporTV")
+
+include(":MacKeyfi")
+project(":MacKeyfi").projectDir = file("MacKeyfi")
+
+include(":MahsunSports")
+project(":MahsunSports").projectDir = file("MahsunSports")
+
+include(":SelcukSports")
+project(":SelcukSports").projectDir = file("SelcukSports")
+
+include(":Taraftarium24")
+project(":Taraftarium24").projectDir = file("Taraftarium24")
+
+include(":TurkSporDestek")
+project(":TurkSporDestek").projectDir = file("TurkSporDestek")
+
+include(":ZbahisTV")
+project(":ZbahisTV").projectDir = file("ZbahisTV")
+
