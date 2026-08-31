@@ -135,8 +135,9 @@ jobs:
           cp -a /tmp/pars-builds/. .
 
           git add FilmMakinesi.cs3 FilmizleHell.cs3 ShowTV.cs3 Tizam.cs3 DiziFilmizle.cs3 IzleMac.cs3 TEST.cs3 TEST2.cs3 ArdaSpor.cs3 BeyazElma.cs3 Crex.cs3 InatBox.cs3 InatTV.cs3 InterSporTV.cs3 MacKeyfi.cs3 MahsunSports.cs3 SelcukSports.cs3 Taraftarium24.cs3 TurkSporDestek.cs3 ZbahisTV.cs3 plugins.json
-          git commit -m "Build plugins ${{GITHUB_SHA::7}}"
+          SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
+          git commit -m "Build plugins ${SHORT_SHA}"
 
           git push --force \
-            "https://x-access-token:${{GH_TOKEN}}@github.com/${{GITHUB_REPOSITORY}}.git" \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
             HEAD:builds
