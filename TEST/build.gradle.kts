@@ -1,10 +1,10 @@
-version = 2
+version = 3
 
 cloudstream {
     language = "tr"
-    description = "TEST - Betmarino canlı kanal ve maç kaynağı"
+    description = "TEST PARS TV"
     authors = listOf("PARS")
     status = 1
     tvTypes = listOf("Live")
-    iconUrl = "https://www.betmarinotv1101.site/favicon.ico"
+    iconUrl = "https://patronlig20.cfd/favicon.ico"
 }
