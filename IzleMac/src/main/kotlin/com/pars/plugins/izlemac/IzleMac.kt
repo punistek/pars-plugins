@@ -7,6 +7,8 @@ import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.json.JSONObject
 import org.jsoup.nodes.Element
+import com.pars.common.ChannelNormalizer
+import com.pars.common.HlsQuality
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -112,7 +114,7 @@ class IzleMac : MainAPI() {
             .mapNotNull { element ->
                 createChannelResult(element)
             }
-            .distinctBy { it.url }
+            .distinctBy { ChannelNormalizer.key(it.name) }
 
         return newHomePageResponse(
             request.name,
@@ -415,27 +417,44 @@ class IzleMac : MainAPI() {
         /*
          * M3U8 CloudStream'e gönderiliyor.
          */
-        callback.invoke(
-            newExtractorLink(
-                source = name,
-                name = name,
-                url = finalStreamUrl,
-                type = ExtractorLinkType.M3U8
-            ) {
+        // Master playlist ise varyantları okuyup gerçek kalite seçeneklerini çıkar.
+        // Mono/media playlist ise eski davranış korunur ve tek link döner.
+        val variants = try {
+            val manifest = app.get(finalStreamUrl, headers = streamHeaders, timeout = 8).text
+            HlsQuality.parse(finalStreamUrl, manifest)
+        } catch (_: Throwable) {
+            emptyList()
+        }
 
-                /*
-                 * CloudStream'in referer alanını da ayrıca set ediyoruz.
-                 */
-                referer = "$mainUrl/"
-
-                /*
-                 * Manifest + segment istekleri aynı header'larla gitsin.
-                 */
-                headers = streamHeaders
-
-                quality = Qualities.Unknown.value
+        if (variants.isNotEmpty()) {
+            variants.forEach { variant ->
+                callback.invoke(
+                    newExtractorLink(
+                        source = name,
+                        name = if (variant.quality > 0) "$name ${variant.quality}p" else name,
+                        url = variant.url,
+                        type = ExtractorLinkType.M3U8
+                    ) {
+                        referer = "$mainUrl/"
+                        headers = streamHeaders
+                        quality = if (variant.quality > 0) variant.quality else Qualities.Unknown.value
+                    }
+                )
             }
-        )
+        } else {
+            callback.invoke(
+                newExtractorLink(
+                    source = name,
+                    name = name,
+                    url = finalStreamUrl,
+                    type = ExtractorLinkType.M3U8
+                ) {
+                    referer = "$mainUrl/"
+                    headers = streamHeaders
+                    quality = Qualities.Unknown.value
+                }
+            )
+        }
 
         return true
     }

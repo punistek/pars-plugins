@@ -8,3 +8,8 @@ cloudstream {
     tvTypes = listOf("Live")
     iconUrl = "https://www.ardaspor30.top/assets/img/55557ardafav.png"
 }
+
+
+dependencies {
+    implementation(project(":common"))
+}

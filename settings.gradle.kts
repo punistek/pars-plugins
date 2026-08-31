@@ -53,3 +53,6 @@ project(":TEST").projectDir = file("TEST")
 
 include(":TEST2")
 project(":TEST2").projectDir = file("TEST2")
+
+include(":common")
+project(":common").projectDir = file("common")
