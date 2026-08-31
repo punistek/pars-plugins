@@ -12,9 +12,25 @@ on:
       - "Tizam/**"
       - "DiziFilmizle/**"
       - "IzleMac/**"
-      - "common/**"
       - "TEST/**"
       - "TEST2/**"
+      - "ArdaSpor/**"
+      - "BeyazElma/**"
+      - "Crex/**"
+      - "InatBox/**"
+      - "InatTV/**"
+      - "InterSporTV/**"
+      - "MacKeyfi/**"
+      - "MahsunSports/**"
+      - "SelcukSports/**"
+      - "Taraftarium24/**"
+      - "TurkSporDestek/**"
+      - "ZbahisTV/**"
+      - "common/**"
+      - "turkspor-core/**"
+      - "assets/**"
+      - "domains.json"
+      - "channel-rules.json"
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"
@@ -46,7 +62,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build plugins and plugins.json
-        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make :ShowTV:make :Tizam:make :DiziFilmizle:make :IzleMac:make :TEST:make :TEST2:make makePluginsJson
+        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make :ShowTV:make :Tizam:make :DiziFilmizle:make :IzleMac:make :TEST:make :TEST2:make :ArdaSpor:make :BeyazElma:make :Crex:make :InatBox:make :InatTV:make :InterSporTV:make :MacKeyfi:make :MahsunSports:make :SelcukSports:make :Taraftarium24:make :TurkSporDestek:make :ZbahisTV:make makePluginsJson
 
       - name: Verify generated files
         run: |
@@ -61,6 +77,18 @@ jobs:
           test -f IzleMac/build/IzleMac.cs3
           test -f TEST/build/TEST.cs3
           test -f TEST2/build/TEST2.cs3
+          test -f ArdaSpor/build/ArdaSpor.cs3
+          test -f BeyazElma/build/BeyazElma.cs3
+          test -f Crex/build/Crex.cs3
+          test -f InatBox/build/InatBox.cs3
+          test -f InatTV/build/InatTV.cs3
+          test -f InterSporTV/build/InterSporTV.cs3
+          test -f MacKeyfi/build/MacKeyfi.cs3
+          test -f MahsunSports/build/MahsunSports.cs3
+          test -f SelcukSports/build/SelcukSports.cs3
+          test -f Taraftarium24/build/Taraftarium24.cs3
+          test -f TurkSporDestek/build/TurkSporDestek.cs3
+          test -f ZbahisTV/build/ZbahisTV.cs3
           test -f build/plugins.json
 
       - name: Prepare builds branch files
@@ -76,6 +104,18 @@ jobs:
           cp IzleMac/build/IzleMac.cs3 /tmp/pars-builds/IzleMac.cs3
           cp TEST/build/TEST.cs3 /tmp/pars-builds/TEST.cs3
           cp TEST2/build/TEST2.cs3 /tmp/pars-builds/TEST2.cs3
+          cp ArdaSpor/build/ArdaSpor.cs3 /tmp/pars-builds/ArdaSpor.cs3
+          cp BeyazElma/build/BeyazElma.cs3 /tmp/pars-builds/BeyazElma.cs3
+          cp Crex/build/Crex.cs3 /tmp/pars-builds/Crex.cs3
+          cp InatBox/build/InatBox.cs3 /tmp/pars-builds/InatBox.cs3
+          cp InatTV/build/InatTV.cs3 /tmp/pars-builds/InatTV.cs3
+          cp InterSporTV/build/InterSporTV.cs3 /tmp/pars-builds/InterSporTV.cs3
+          cp MacKeyfi/build/MacKeyfi.cs3 /tmp/pars-builds/MacKeyfi.cs3
+          cp MahsunSports/build/MahsunSports.cs3 /tmp/pars-builds/MahsunSports.cs3
+          cp SelcukSports/build/SelcukSports.cs3 /tmp/pars-builds/SelcukSports.cs3
+          cp Taraftarium24/build/Taraftarium24.cs3 /tmp/pars-builds/Taraftarium24.cs3
+          cp TurkSporDestek/build/TurkSporDestek.cs3 /tmp/pars-builds/TurkSporDestek.cs3
+          cp ZbahisTV/build/ZbahisTV.cs3 /tmp/pars-builds/ZbahisTV.cs3
           cp build/plugins.json /tmp/pars-builds/plugins.json
 
           echo "=== PUBLISH CONTENT ==="
@@ -94,9 +134,9 @@ jobs:
 
           cp -a /tmp/pars-builds/. .
 
-          git add FilmMakinesi.cs3 FilmizleHell.cs3 ShowTV.cs3 Tizam.cs3 DiziFilmizle.cs3 IzleMac.cs3 TEST.cs3 TEST2.cs3 plugins.json
-          git commit -m "Build plugins ${GITHUB_SHA::7}"
+          git add FilmMakinesi.cs3 FilmizleHell.cs3 ShowTV.cs3 Tizam.cs3 DiziFilmizle.cs3 IzleMac.cs3 TEST.cs3 TEST2.cs3 ArdaSpor.cs3 BeyazElma.cs3 Crex.cs3 InatBox.cs3 InatTV.cs3 InterSporTV.cs3 MacKeyfi.cs3 MahsunSports.cs3 SelcukSports.cs3 Taraftarium24.cs3 TurkSporDestek.cs3 ZbahisTV.cs3 plugins.json
+          git commit -m "Build plugins ${{GITHUB_SHA::7}}"
 
           git push --force \
-            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "https://x-access-token:${{GH_TOKEN}}@github.com/${{GITHUB_REPOSITORY}}.git" \
             HEAD:builds
