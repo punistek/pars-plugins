@@ -1,4 +1,4 @@
-package com.pars.plugins.test
+package com.pars.plugins.test2
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
