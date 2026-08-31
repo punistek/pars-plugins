@@ -26,7 +26,7 @@ dependencies {
 }
 
 /*
- * common modülünde Java ve Kotlin bytecode hedefleri aynı olmalı.
+ * common modülünde Java ve Kotlin bytecode hedefleri aynı olmalı..
  * GitHub Actions'taki hata:
  *   compileDebugJavaWithJavac = 1.8
  *   compileDebugKotlin       = 23
