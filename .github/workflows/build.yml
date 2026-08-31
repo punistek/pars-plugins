@@ -12,6 +12,7 @@ on:
       - "Tizam/**"
       - "DiziFilmizle/**"
       - "IzleMac/**"
+      - "common/**"
       - "TEST/**"
       - "TEST2/**"
       - "build.gradle.kts"
