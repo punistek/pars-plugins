@@ -46,7 +46,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build plugins and plugins.json
-        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make :ShowTV:make :Tizam:make :DiziFilmizle:make :IzleMac:make :TEST:make :TEST2:make makePluginsJson --refresh-dependencies
+        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make :ShowTV:make :Tizam:make :DiziFilmizle:make :IzleMac:make :TEST:make :TEST2:make makePluginsJson
 
       - name: Verify generated files
         run: |
