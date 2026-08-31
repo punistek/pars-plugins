@@ -28,25 +28,21 @@ class TestProvider : MainAPI() {
             "AppleWebKit/537.36 (KHTML, like Gecko) " +
             "Chrome/151.0.0.0 Safari/537.36"
 
-    private val apiHeaders: Map<String, String>
+    private val browserHeaders: Map<String, String>
         get() = mapOf(
             "Accept" to "*/*",
             "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
             "Cache-Control" to "no-cache",
             "Origin" to mainUrl,
             "Pragma" to "no-cache",
+            "Priority" to "u=1, i",
             "Referer" to "$mainUrl/",
-            "User-Agent" to userAgent,
-        )
-
-    private val streamHeaders: Map<String, String>
-        get() = mapOf(
-            "Accept" to "*/*",
-            "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Cache-Control" to "no-cache",
-            "Origin" to mainUrl,
-            "Pragma" to "no-cache",
-            "Referer" to "$mainUrl/",
+            "Sec-CH-UA" to "\"Not=A?Brand\";v=\"99\", \"Google Chrome\";v=\"151\", \"Chromium\";v=\"151\"",
+            "Sec-CH-UA-Mobile" to "?0",
+            "Sec-CH-UA-Platform" to "\"Windows\"",
+            "Sec-Fetch-Dest" to "empty",
+            "Sec-Fetch-Mode" to "cors",
+            "Sec-Fetch-Site" to "cross-site",
             "User-Agent" to userAgent,
         )
 
@@ -117,8 +113,6 @@ class TestProvider : MainAPI() {
             ?.takeIf { it.isNotEmpty() }
             ?: return false
 
-        // Bu kaynakta görülen kanal id'leri harf, rakam, tire ve alt çizgiden oluşuyor.
-        // Path'e doğrudan zararlı karakter taşınmaması için temizliyoruz.
         val channelId = rawId.replace(Regex("[^A-Za-z0-9_-]"), "")
         if (channelId.isEmpty()) return false
 
@@ -133,7 +127,7 @@ class TestProvider : MainAPI() {
                 type = ExtractorLinkType.M3U8,
             ) {
                 referer = "$mainUrl/"
-                headers = streamHeaders
+                headers = browserHeaders
                 quality = Qualities.Unknown.value
             },
         )
@@ -144,7 +138,7 @@ class TestProvider : MainAPI() {
     private suspend fun resolveStreamBaseUrl(): String? {
         val response = app.get(
             domainUrl,
-            headers = apiHeaders,
+            headers = browserHeaders,
         )
 
         val text = response.text.trim()
@@ -154,14 +148,17 @@ class TestProvider : MainAPI() {
             JSONObject(text)
                 .optString("baseurl", "")
                 .trim()
-                .takeIf { it.startsWith("http://") || it.startsWith("https://") }
+                .takeIf {
+                    it.startsWith("http://", ignoreCase = true) ||
+                        it.startsWith("https://", ignoreCase = true)
+                }
         }.getOrNull()
     }
 
     private suspend fun loadChannelItems(): List<SearchResponse> {
         val document = app.get(
             channelsUrl,
-            headers = apiHeaders,
+            headers = browserHeaders,
         ).document
 
         return document
@@ -173,7 +170,7 @@ class TestProvider : MainAPI() {
     private suspend fun loadMatchItems(): List<SearchResponse> {
         val document = app.get(
             matchesUrl,
-            headers = apiHeaders,
+            headers = browserHeaders,
         ).document
 
         return document
