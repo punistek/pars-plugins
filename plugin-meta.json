@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "plugin": "DiziFilmizle",
+      "capabilities": [
+        "Film",
+        "Dizi",
+        "Arama",
+        "Seri"
+      ],
+      "domains": [
+        "https://dizifilmizle.to"
+      ],
+      "healthUrl": "https://dizifilmizle.to/",
+      "changelog": {
+        "1": [
+          "Film ve dizi desteği birlikte aktif.",
+          "Tür kategorileri eklendi.",
+          "Film Serileri ve Koleksiyonlar desteği eklendi."
+        ]
+      }
+    },
+    {
+      "plugin": "FilmMakinesi",
+      "capabilities": [
+        "Film",
+        "Arama"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "FilmizleHell",
+      "capabilities": [
+        "Film",
+        "Arama"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "ArdaSpor",
+      "capabilities": [
+        "Canlı",
+        "Spor"
+      ],
+      "domains": [
+        "https://ardaspor30.top"
+      ],
+      "healthUrl": "https://ardaspor30.top/",
+      "changelog": {}
+    },
+    {
+      "plugin": "BeyazElma",
+      "capabilities": [
+        "Canlı"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "Crex",
+      "capabilities": [
+        "Canlı"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "InatBox",
+      "capabilities": [
+        "Canlı",
+        "Spor"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "InatTV",
+      "capabilities": [
+        "Canlı",
+        "Spor"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "IzleMac",
+      "capabilities": [
+        "Canlı",
+        "Spor"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "MacKeyfi",
+      "capabilities": [
+        "Canlı",
+        "Spor"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "MahsunSports",
+      "capabilities": [
+        "Canlı",
+        "Spor"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "SelcukSports",
+      "capabilities": [
+        "Canlı",
+        "Spor"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "Taraftarium24",
+      "capabilities": [
+        "Canlı",
+        "Spor"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    },
+    {
+      "plugin": "ZbahisTV",
+      "capabilities": [
+        "Canlı",
+        "Spor"
+      ],
+      "domains": [],
+      "healthUrl": "",
+      "changelog": {}
+    }
+  ]
+}

@@ -4,5 +4,7 @@
   "manifestVersion": 1,
   "pluginLists": [
     "https://raw.githubusercontent.com/punistek/pars-plugins/refs/heads/builds/plugins.json"
-  ]
+  ],
+  "metadataUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/refs/heads/builds/plugin-meta.json",
+  "noticesUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/refs/heads/builds/notices.json"
 }
