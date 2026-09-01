@@ -125,7 +125,7 @@ class DiziFilmizle : MainAPI() {
         return loadMovie(url, doc)
     }
 
-    private fun loadMovie(url: String, doc: Document): LoadResponse {
+    private suspend fun loadMovie(url: String, doc: Document): LoadResponse {
         val title = pageTitle(doc, url)
         val poster = pagePoster(doc, title)
         val plot = pagePlot(doc)
@@ -140,7 +140,7 @@ class DiziFilmizle : MainAPI() {
         }
     }
 
-    private fun loadCollection(url: String, doc: Document): LoadResponse {
+    private suspend fun loadCollection(url: String, doc: Document): LoadResponse {
         val title = pageTitle(doc, url)
         val poster = pagePoster(doc, title)
         val plot = pagePlot(doc)
