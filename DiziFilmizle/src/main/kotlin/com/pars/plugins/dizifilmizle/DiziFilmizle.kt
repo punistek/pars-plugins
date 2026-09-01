@@ -56,12 +56,14 @@ class DiziFilmizle : MainAPI() {
         val realUrl = request.data.substringBefore('#')
         val doc = app.get(realUrl, headers = headers).document
 
-        val items = when {
+        val allItems = when {
             request.data.endsWith("#pars-popular") ->
-                parseMovieSection(doc, "Popüler Filmler").ifEmpty { parseMovieCards(doc) }
+                parseMovieSection(doc, "Popüler Filmler")
+                    .ifEmpty { parseMovieCards(doc) }
 
             request.data.endsWith("#pars-hd") ->
-                parseMovieSection(doc, "HD Film izle").ifEmpty { parseMovieCards(doc) }
+                parseMovieSection(doc, "HD Film izle")
+                    .ifEmpty { parseMovieCards(doc) }
 
             realUrl.trimEnd('/') == "$mainUrl/seriler" -> {
                 val collections = parseCollectionCards(doc)
@@ -78,7 +80,19 @@ class DiziFilmizle : MainAPI() {
             else -> parseMixedCards(doc)
         }
 
-        return newHomePageResponse(request.name, items, false)
+        val pageSize = 24
+        val safePage = page.coerceAtLeast(1)
+        val from = (safePage - 1) * pageSize
+
+        if (from >= allItems.size) {
+            return newHomePageResponse(request.name, emptyList(), false)
+        }
+
+        val to = minOf(from + pageSize, allItems.size)
+        val items = allItems.subList(from, to)
+        val hasNext = to < allItems.size
+
+        return newHomePageResponse(request.name, items, hasNext)
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
@@ -366,9 +380,12 @@ class DiziFilmizle : MainAPI() {
         return emptyList()
     }
 
-    private fun parseMovieCards(root: org.jsoup.nodes.Element): List<SearchResponse> {
+    private fun parseMovieCards(
+        root: org.jsoup.nodes.Element
+    ): List<SearchResponse> {
         val out = LinkedHashMap<String, SearchResponse>()
 
+        // 1) Normal DOM kartları.
         root.select("a[href]").forEach { a ->
             val href0 = a.attr("href").trim()
             if (!href0.matches(Regex("""/?film/[^/?#]+/?"""))) return@forEach
@@ -410,6 +427,57 @@ class DiziFilmizle : MainAPI() {
             }
         }
 
+        // 2) Next.js / React payload fallback.
+        // "Daha Fazla Film Göster" ile sonradan açılan kartların önemli bir
+        // bölümü HTML içindeki serialize edilmiş payload'da bulunabiliyor.
+        val raw = root.html()
+            .replace("\\u0026", "&")
+            .replace("\\/", "/")
+            .replace("\\\"", "\"")
+
+        val slugMatches = Regex(
+            """/film/([a-zA-Z0-9ğüşöçıİĞÜŞÖÇ_-]+)""",
+            RegexOption.IGNORE_CASE
+        ).findAll(raw)
+
+        slugMatches.forEach { match ->
+            val slug = match.groupValues[1].trim()
+            if (slug.isBlank()) return@forEach
+
+            val url = "$mainUrl/film/$slug"
+            if (out.containsKey(url)) return@forEach
+
+            val begin = maxOf(0, match.range.first - 2200)
+            val finish = minOf(raw.length, match.range.last + 3500)
+            val window = raw.substring(begin, finish)
+
+            val title = firstNonBlank(
+                Regex(
+                    """"(?:title|name)"\s*:\s*"([^"]+)"""",
+                    RegexOption.IGNORE_CASE
+                ).find(window)?.groupValues?.getOrNull(1)?.let(::unescape),
+                slugTitle(url)
+            )
+
+            val posterRaw = Regex(
+                """"(?:poster_url|poster|image|image_url)"\s*:\s*"([^"]+)"""",
+                RegexOption.IGNORE_CASE
+            ).find(window)?.groupValues?.getOrNull(1)
+
+            val poster = cleanJsonUrl(posterRaw)
+                ?: posterRaw?.let(::absolute)
+
+            val year = Regex("""\b(19|20)\d{2}\b""")
+                .find(window)
+                ?.value
+                ?.toIntOrNull()
+
+            out[url] = newMovieSearchResponse(title, url, TvType.Movie) {
+                this.posterUrl = poster
+                this.year = year
+            }
+        }
+
         return out.values.toList()
     }
 
@@ -418,12 +486,25 @@ class DiziFilmizle : MainAPI() {
 
         doc.select("a[href]").forEach { a ->
             val href0 = a.attr("href").trim()
-            if (!isCollectionPath(href0)) return@forEach
-
             val url = absolute(href0) ?: return@forEach
             if (url.trimEnd('/') == "$mainUrl/seriler") return@forEach
 
             val card = a.closest("article,li,div")
+            val cardText = card?.text().orEmpty()
+
+            // Sitedeki koleksiyon kartlarında "11 Film", "9 Film", "4 Film"
+            // gibi sayaç rozeti var. URL yapısı değişse bile bunu kullan.
+            val hasFilmCount = Regex(
+                """\b\d+\s*Film\b""",
+                RegexOption.IGNORE_CASE
+            ).containsMatchIn(cardText)
+
+            if (!isCollectionPath(href0) && !hasFilmCount) return@forEach
+
+            // Tek film/dizi detayını koleksiyon sanma.
+            if (href0.matches(Regex("""/?film/[^/?#]+/?"""))) return@forEach
+            if (href0.matches(Regex("""/?dizi/[^/?#]+/?"""))) return@forEach
+
             val img = a.selectFirst("img") ?: card?.selectFirst("img")
 
             val title = firstNonBlank(
@@ -431,10 +512,14 @@ class DiziFilmizle : MainAPI() {
                 a.attr("title"),
                 card?.selectFirst("h2,h3,h4")?.text(),
                 img?.attr("alt"),
+                a.text(),
                 slugTitle(url)
-            )
+            ).replace(
+                Regex("""\s+\d+\s*Film\s*$""", RegexOption.IGNORE_CASE),
+                ""
+            ).trim()
 
-            if (title.isBlank()) return@forEach
+            if (title.isBlank() || title.equals("İzle", true)) return@forEach
 
             val poster = absolute(
                 firstNonBlank(
@@ -455,9 +540,19 @@ class DiziFilmizle : MainAPI() {
 
     private fun isCollectionPath(path: String): Boolean {
         val p = path.substringBefore('?').substringBefore('#').trim()
-        return p.matches(Regex("""/?seriler/[^/?#]+/?""", RegexOption.IGNORE_CASE)) ||
-            p.matches(Regex("""/?seri/[^/?#]+/?""", RegexOption.IGNORE_CASE)) ||
-            p.matches(Regex("""/?koleksiyon/[^/?#]+/?""", RegexOption.IGNORE_CASE))
+
+        return p.matches(
+            Regex("""/?seriler/[^/?#]+/?""", RegexOption.IGNORE_CASE)
+        ) || p.matches(
+            Regex("""/?seri/[^/?#]+/?""", RegexOption.IGNORE_CASE)
+        ) || p.matches(
+            Regex("""/?koleksiyon/[^/?#]+/?""", RegexOption.IGNORE_CASE)
+        ) || p.matches(
+            Regex(
+                """/?[^/?#]*(?:seri|koleksiyon)[^/?#]*/[^/?#]+/?""",
+                RegexOption.IGNORE_CASE
+            )
+        )
     }
 
     private fun isCollectionUrl(url: String): Boolean {
