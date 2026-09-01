@@ -9,7 +9,7 @@ import java.net.URLEncoder
 class DiziFilmizle : MainAPI() {
     override var mainUrl = "https://dizifilmizle.to"
     override var name = "DiziFilmizle"
-    override val supportedTypes = setOf(TvType.TvSeries)
+    override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
     override var lang = "tr"
     override val hasMainPage = true
     override val hasQuickSearch = true
@@ -21,16 +21,63 @@ class DiziFilmizle : MainAPI() {
     )
 
     override val mainPage = mainPageOf(
+        "$mainUrl/#pars-popular" to "Popüler Filmler",
+        "$mainUrl/#pars-hd" to "HD Film izle",
+        "$mainUrl/seriler" to "Film Serileri ve Koleksiyonlar",
+
+        "$mainUrl/tur/aile" to "Aile",
+        "$mainUrl/tur/aksiyon" to "Aksiyon",
+        "$mainUrl/tur/animasyon" to "Animasyon",
+        "$mainUrl/tur/belgesel" to "Belgesel",
+        "$mainUrl/tur/bilim-kurgu" to "Bilim Kurgu",
+        "$mainUrl/tur/biyografi" to "Biyografi",
+        "$mainUrl/tur/dram" to "Dram",
+        "$mainUrl/tur/fantastik" to "Fantastik",
+        "$mainUrl/tur/gerilim" to "Gerilim",
+        "$mainUrl/tur/gizem" to "Gizem",
+        "$mainUrl/tur/komedi" to "Komedi",
+        "$mainUrl/tur/korku" to "Korku",
+        "$mainUrl/tur/macera" to "Macera",
+        "$mainUrl/tur/muzikal" to "Müzik",
+        "$mainUrl/tur/romantik" to "Romantik",
+        "$mainUrl/tur/savas" to "Savaş",
+        "$mainUrl/tur/spor" to "Spor",
+        "$mainUrl/tur/suc" to "Suç",
+
         "$mainUrl/yabanci-dizi-izle" to "Yabancı Diziler",
         "$mainUrl/efsane-diziler" to "Efsane Diziler",
         "$mainUrl/imdb-7" to "IMDB 7+ Diziler"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        // Bu site katalog sayfasında çok büyük bir Next.js payload döndürüyor.
-        // Aynı sayfayı page=2 diye bölmek yerine tüm benzersiz /dizi/ kartlarını tek istekte topluyoruz.
-        val doc = app.get(request.data, headers = headers).document
-        val items = parseSeriesCards(doc)
+    override suspend fun getMainPage(
+        page: Int,
+        request: MainPageRequest
+    ): HomePageResponse {
+        val realUrl = request.data.substringBefore('#')
+        val doc = app.get(realUrl, headers = headers).document
+
+        val items = when {
+            request.data.endsWith("#pars-popular") ->
+                parseMovieSection(doc, "Popüler Filmler").ifEmpty { parseMovieCards(doc) }
+
+            request.data.endsWith("#pars-hd") ->
+                parseMovieSection(doc, "HD Film izle").ifEmpty { parseMovieCards(doc) }
+
+            realUrl.trimEnd('/') == "$mainUrl/seriler" -> {
+                val collections = parseCollectionCards(doc)
+                if (collections.isNotEmpty()) collections else parseMovieCards(doc)
+            }
+
+            realUrl.contains("/yabanci-dizi-izle") ||
+                realUrl.contains("/efsane-diziler") ||
+                realUrl.contains("/imdb-7") ->
+                parseSeriesCards(doc)
+
+            realUrl.contains("/tur/") -> parseMovieCards(doc)
+
+            else -> parseMixedCards(doc)
+        }
+
         return newHomePageResponse(request.name, items, false)
     }
 
@@ -38,25 +85,27 @@ class DiziFilmizle : MainAPI() {
         val q = query.trim()
         if (q.isBlank()) return emptyList()
 
-        // Önce sitenin kendi arama uçlarını dene. Site değişirse katalog fallback'i eksik sonuç bırakmaz.
         val candidates = listOf(
             "$mainUrl/arama?q=${encodeQuery(q)}",
             "$mainUrl/search?q=${encodeQuery(q)}",
+            mainUrl,
             "$mainUrl/yabanci-dizi-izle"
         )
 
         val out = LinkedHashMap<String, SearchResponse>()
+
         for (url in candidates) {
             runCatching {
                 val doc = app.get(url, headers = headers).document
-                parseSeriesCards(doc).forEach { r ->
-                    if (r.name.contains(q, ignoreCase = true) || url.endsWith("yabanci-dizi-izle")) {
-                        if (r.name.contains(q, ignoreCase = true)) out[r.url] = r
+                parseMixedCards(doc).forEach { r ->
+                    if (r.name.contains(q, ignoreCase = true)) {
+                        out[r.url] = r
                     }
                 }
             }
-            if (out.isNotEmpty()) break
+            if (out.size >= 30) break
         }
+
         return out.values.toList()
     }
 
@@ -65,39 +114,55 @@ class DiziFilmizle : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url, headers = headers).document
 
-        val title = firstNonBlank(
-            doc.selectFirst("h1")?.text(),
-            doc.selectFirst("meta[property=og:title]")?.attr("content")
-                ?.substringBefore("|")?.trim(),
-            slugTitle(url)
-        )
+        if (url.contains("/dizi/")) {
+            return loadSeries(url, doc)
+        }
 
-        val poster = absolute(
-            firstNonBlank(
-                doc.selectFirst("meta[property=og:image]")?.attr("content"),
-                doc.select("img").firstOrNull {
-                    it.attr("alt").contains(title, true)
-                }?.let { it.attr("src").ifBlank { it.attr("data-src") } }
-            )
-        )
+        if (isCollectionUrl(url)) {
+            return loadCollection(url, doc)
+        }
 
-        val plot = firstNonBlank(
-            doc.selectFirst("meta[name=description]")?.attr("content"),
-            doc.select("h2").firstOrNull { it.text().contains("Konusu", true) }
-                ?.parent()?.selectFirst("p")?.text(),
-            doc.select("p").map { it.text() }
-                .firstOrNull { it.length > 120 }
-        )
+        return loadMovie(url, doc)
+    }
 
-        val yearText = doc.body().text()
-        val year = Regex("""\b(19|20)\d{2}\b""").find(yearText)?.value?.toIntOrNull()
+    private fun loadMovie(url: String, doc: Document): LoadResponse {
+        val title = pageTitle(doc, url)
+        val poster = pagePoster(doc, title)
+        val plot = pagePlot(doc)
+        val year = pageYear(doc)
+        val tags = pageTags(doc)
 
-        val tags = doc.select("a[href*=/tur/], a[href*=/genre/]")
-            .map { it.text().trim() }.filter { it.isNotBlank() }.distinct()
+        return newMovieLoadResponse(title, url, TvType.Movie, url) {
+            this.posterUrl = poster
+            this.plot = plot
+            this.year = year
+            this.tags = tags
+        }
+    }
 
-        // Tüm sezonları gerçekten dolaş. Böylece sadece ekranda seçili olan sezon gelmez.
+    private fun loadCollection(url: String, doc: Document): LoadResponse {
+        val title = pageTitle(doc, url)
+        val poster = pagePoster(doc, title)
+        val plot = pagePlot(doc)
+        val movies = parseMovieCards(doc)
+
+        return newMovieLoadResponse(title, url, TvType.Movie, url) {
+            this.posterUrl = poster
+            this.plot = plot
+            this.recommendations = movies
+        }
+    }
+
+    private suspend fun loadSeries(url: String, doc: Document): LoadResponse {
+        val title = pageTitle(doc, url)
+        val poster = pagePoster(doc, title)
+        val plot = pagePlot(doc)
+        val year = pageYear(doc)
+        val tags = pageTags(doc)
+
         val seasonUrls = LinkedHashSet<String>()
         seasonUrls += url.substringBefore("/sezon-")
+
         doc.select("a[href]").forEach { a ->
             val href = a.absUrl("href").ifBlank { absolute(a.attr("href")) ?: "" }
             if (href.matches(Regex("""https?://[^/]+/dizi/[^/]+/sezon-\d+/?$"""))) {
@@ -105,11 +170,9 @@ class DiziFilmizle : MainAPI() {
             }
         }
 
-        // Ana dizi sayfasında görünen bölüm linklerini de al.
         val episodes = LinkedHashMap<String, Episode>()
         collectEpisodes(doc, episodes)
 
-        // Sezon linkleri varsa her sezonu ayrı çek. Bazı diziler ana sayfada yalnız 1. sezonu render ediyor.
         val realSeasonUrls = seasonUrls.filter { it.contains("/sezon-") }
         for (seasonUrl in realSeasonUrls) {
             runCatching {
@@ -118,23 +181,28 @@ class DiziFilmizle : MainAPI() {
             }
         }
 
-        // Ana sayfada sezon linkleri DOM'a basılmamış ama metinde 1..N sezon görünüyorsa,
-        // bilinen URL düzenini kontrollü şekilde tara.
         val seasonNumbers = Regex("""(\d+)\.?\s*Sezon""", RegexOption.IGNORE_CASE)
             .findAll(doc.body().text())
             .mapNotNull { it.groupValues[1].toIntOrNull() }
-            .filter { it in 1..30 }.toSet()
+            .filter { it in 1..30 }
+            .toSet()
 
         for (s in seasonNumbers) {
             val seasonUrl = "${url.trimEnd('/')}/sezon-$s"
             if (realSeasonUrls.any { it.trimEnd('/') == seasonUrl }) continue
+
             runCatching {
                 val r = app.get(seasonUrl, headers = headers)
                 if (r.code in 200..299) collectEpisodes(r.document, episodes)
             }
         }
 
-        return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.values.toList()) {
+        return newTvSeriesLoadResponse(
+            title,
+            url,
+            TvType.TvSeries,
+            episodes.values.toList()
+        ) {
             this.posterUrl = poster
             this.plot = plot
             this.year = year
@@ -268,6 +336,172 @@ class DiziFilmizle : MainAPI() {
 
         return found
     }
+
+    private fun parseMixedCards(doc: Document): List<SearchResponse> {
+        val out = LinkedHashMap<String, SearchResponse>()
+        parseMovieCards(doc).forEach { out[it.url] = it }
+        parseSeriesCards(doc).forEach { out[it.url] = it }
+        return out.values.toList()
+    }
+
+    private fun parseMovieSection(
+        doc: Document,
+        headingText: String
+    ): List<SearchResponse> {
+        val heading = doc.select("h1,h2,h3,h4").firstOrNull {
+            it.text().contains(headingText, ignoreCase = true)
+        } ?: return emptyList()
+
+        val containers = listOfNotNull(
+            heading.closest("section"),
+            heading.parent(),
+            heading.parent()?.parent()
+        )
+
+        for (container in containers) {
+            val parsed = parseMovieCards(container)
+            if (parsed.isNotEmpty()) return parsed
+        }
+
+        return emptyList()
+    }
+
+    private fun parseMovieCards(root: org.jsoup.nodes.Element): List<SearchResponse> {
+        val out = LinkedHashMap<String, SearchResponse>()
+
+        root.select("a[href]").forEach { a ->
+            val href0 = a.attr("href").trim()
+            if (!href0.matches(Regex("""/?film/[^/?#]+/?"""))) return@forEach
+
+            val url = absolute(href0) ?: return@forEach
+            val card = a.closest("article,li,div")
+            val img = a.selectFirst("img") ?: card?.selectFirst("img")
+
+            val title = firstNonBlank(
+                a.attr("aria-label"),
+                a.attr("title"),
+                img?.attr("alt")?.replace(
+                    Regex("""\s+izle$""", RegexOption.IGNORE_CASE),
+                    ""
+                ),
+                card?.selectFirst("h2,h3,h4")?.text(),
+                slugTitle(url)
+            )
+
+            if (title.isBlank() || title.equals("İzle", true)) return@forEach
+
+            val poster = absolute(
+                firstNonBlank(
+                    img?.attr("src"),
+                    img?.attr("data-src"),
+                    img?.attr("data-lazy-src"),
+                    img?.attr("data-original")
+                )
+            )
+
+            val year = Regex("""\b(19|20)\d{2}\b""")
+                .find(card?.text().orEmpty())
+                ?.value
+                ?.toIntOrNull()
+
+            out[url] = newMovieSearchResponse(title, url, TvType.Movie) {
+                this.posterUrl = poster
+                this.year = year
+            }
+        }
+
+        return out.values.toList()
+    }
+
+    private fun parseCollectionCards(doc: Document): List<SearchResponse> {
+        val out = LinkedHashMap<String, SearchResponse>()
+
+        doc.select("a[href]").forEach { a ->
+            val href0 = a.attr("href").trim()
+            if (!isCollectionPath(href0)) return@forEach
+
+            val url = absolute(href0) ?: return@forEach
+            if (url.trimEnd('/') == "$mainUrl/seriler") return@forEach
+
+            val card = a.closest("article,li,div")
+            val img = a.selectFirst("img") ?: card?.selectFirst("img")
+
+            val title = firstNonBlank(
+                a.attr("aria-label"),
+                a.attr("title"),
+                card?.selectFirst("h2,h3,h4")?.text(),
+                img?.attr("alt"),
+                slugTitle(url)
+            )
+
+            if (title.isBlank()) return@forEach
+
+            val poster = absolute(
+                firstNonBlank(
+                    img?.attr("src"),
+                    img?.attr("data-src"),
+                    img?.attr("data-lazy-src"),
+                    img?.attr("data-original")
+                )
+            )
+
+            out[url] = newMovieSearchResponse(title, url, TvType.Movie) {
+                this.posterUrl = poster
+            }
+        }
+
+        return out.values.toList()
+    }
+
+    private fun isCollectionPath(path: String): Boolean {
+        val p = path.substringBefore('?').substringBefore('#').trim()
+        return p.matches(Regex("""/?seriler/[^/?#]+/?""", RegexOption.IGNORE_CASE)) ||
+            p.matches(Regex("""/?seri/[^/?#]+/?""", RegexOption.IGNORE_CASE)) ||
+            p.matches(Regex("""/?koleksiyon/[^/?#]+/?""", RegexOption.IGNORE_CASE))
+    }
+
+    private fun isCollectionUrl(url: String): Boolean {
+        val path = runCatching { URI(url).path }.getOrDefault(url)
+        return isCollectionPath(path)
+    }
+
+    private fun pageTitle(doc: Document, url: String): String =
+        firstNonBlank(
+            doc.selectFirst("h1")?.text(),
+            doc.selectFirst("meta[property=og:title]")?.attr("content")
+                ?.substringBefore("|")?.trim(),
+            slugTitle(url)
+        )
+
+    private fun pagePoster(doc: Document, title: String): String? =
+        absolute(
+            firstNonBlank(
+                doc.selectFirst("meta[property=og:image]")?.attr("content"),
+                doc.select("img").firstOrNull {
+                    it.attr("alt").contains(title, true)
+                }?.let { it.attr("src").ifBlank { it.attr("data-src") } }
+            )
+        )
+
+    private fun pagePlot(doc: Document): String =
+        firstNonBlank(
+            doc.selectFirst("meta[name=description]")?.attr("content"),
+            doc.select("h2").firstOrNull { it.text().contains("Konusu", true) }
+                ?.parent()?.selectFirst("p")?.text(),
+            doc.select("p").map { it.text() }.firstOrNull { it.length > 120 }
+        )
+
+    private fun pageYear(doc: Document): Int? =
+        Regex("""\b(19|20)\d{2}\b""")
+            .find(doc.body().text())
+            ?.value
+            ?.toIntOrNull()
+
+    private fun pageTags(doc: Document): List<String> =
+        doc.select("a[href*=/tur/], a[href*=/genre/]")
+            .map { it.text().trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
 
     private fun parseSeriesCards(doc: Document): List<SearchResponse> {
         val out = LinkedHashMap<String, SearchResponse>()
