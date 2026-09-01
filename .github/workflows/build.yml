@@ -31,6 +31,9 @@ on:
       - "assets/**"
       - "domains.json"
       - "channel-rules.json"
+      - "plugin-meta.json"
+      - "notices.json"
+      - "repo.json"
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"
@@ -117,6 +120,8 @@ jobs:
           cp TurkSporDestek/build/TurkSporDestek.cs3 /tmp/pars-builds/TurkSporDestek.cs3
           cp ZbahisTV/build/ZbahisTV.cs3 /tmp/pars-builds/ZbahisTV.cs3
           cp build/plugins.json /tmp/pars-builds/plugins.json
+          cp plugin-meta.json /tmp/pars-builds/plugin-meta.json
+          cp notices.json /tmp/pars-builds/notices.json
 
           echo "=== PUBLISH CONTENT ==="
           ls -lah /tmp/pars-builds
@@ -134,7 +139,7 @@ jobs:
 
           cp -a /tmp/pars-builds/. .
 
-          git add FilmMakinesi.cs3 FilmizleHell.cs3 ShowTV.cs3 Tizam.cs3 DiziFilmizle.cs3 IzleMac.cs3 TEST.cs3 TEST2.cs3 ArdaSpor.cs3 BeyazElma.cs3 Crex.cs3 InatBox.cs3 InatTV.cs3 InterSporTV.cs3 MacKeyfi.cs3 MahsunSports.cs3 SelcukSports.cs3 Taraftarium24.cs3 TurkSporDestek.cs3 ZbahisTV.cs3 plugins.json
+          git add FilmMakinesi.cs3 FilmizleHell.cs3 ShowTV.cs3 Tizam.cs3 DiziFilmizle.cs3 IzleMac.cs3 TEST.cs3 TEST2.cs3 ArdaSpor.cs3 BeyazElma.cs3 Crex.cs3 InatBox.cs3 InatTV.cs3 InterSporTV.cs3 MacKeyfi.cs3 MahsunSports.cs3 SelcukSports.cs3 Taraftarium24.cs3 TurkSporDestek.cs3 ZbahisTV.cs3 plugins.json plugin-meta.json notices.json
           SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
           git commit -m "Build plugins ${SHORT_SHA}"
 
