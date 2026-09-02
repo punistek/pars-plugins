@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class HotstreamExtractor : ExtractorApi() {
@@ -65,12 +66,11 @@ class HotstreamExtractor : ExtractorApi() {
             newExtractorLink(
                 source = name,
                 name = name,
-                url = fullM3uUrl
+                url = fullM3uUrl,
+                type = ExtractorLinkType.M3U8
             ) {
-                this.referer = url
-                this.quality = Qualities.Unknown.value
-                this.isM3u8 = true
-                this.headers = requestHeaders
+                headers = requestHeaders
+                quality = Qualities.Unknown.value
             }
         )
     }
