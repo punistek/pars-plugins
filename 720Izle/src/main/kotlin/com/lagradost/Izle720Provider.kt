@@ -3,7 +3,6 @@ package com.lagradost
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
-import org.jsoup.nodes.Document
 
 class Izle720Provider : MainAPI() {
     override var mainUrl = "https://720izle.com"
@@ -12,10 +11,10 @@ class Izle720Provider : MainAPI() {
 
     override var hasMainPage = true
 
-    // 1. ANASAYFA KARTLARI (Uygulamayı açınca ekrana gelecek filmler)
+    // 1. ANASAYFA KARTLARI (MainPageRequest parametresi ile güncellendi)
     override suspend fun getMainPage(
         page: Int,
-        request: ProviderPageRequest
+        request: MainPageRequest
     ): HomePageResponse {
         val url = if (page == 1) mainUrl else "$mainUrl/sayfa/$page"
         val document = app.get(url).document
@@ -24,7 +23,6 @@ class Izle720Provider : MainAPI() {
             val title = element.selectFirst("a.film-title, h2, .title, .name")?.text()?.trim() ?: return@mapNotNull null
             val href = fixUrlNull(element.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
 
-            // Poster URL (data-src, data-original kontrolü ile)
             val poster = element.selectFirst("img")?.let { img ->
                 fixUrlNull(
                     img.attr("data-src").ifEmpty {
@@ -43,7 +41,7 @@ class Izle720Provider : MainAPI() {
         return newHomePageResponse(
             listOf(
                 HomePageList(
-                    name = "Son Eklenen Filmler",
+                    name = request.name,
                     list = home
                 )
             ),
@@ -51,7 +49,7 @@ class Izle720Provider : MainAPI() {
         )
     }
 
-    // 2. ARAMA FONKSİYONU
+    // 2. ARAMA
     override suspend fun search(query: String): List<SearchResponse> {
         val searchUrl = "$mainUrl/?s=$query"
         val document = app.get(searchUrl).document
@@ -75,7 +73,7 @@ class Izle720Provider : MainAPI() {
         }
     }
 
-    // 3. FİLM DETAY SAYFASI (Filme tıklayınca açılan yer)
+    // 3. FİLM DETAYI
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
 
@@ -91,7 +89,7 @@ class Izle720Provider : MainAPI() {
         }
     }
 
-    // 4. VİDEO LİNKLERİ VE IFRAME ÇEKİCİ (Senin yazdığın kısım)
+    // 4. VİDEO LİNKLERİ
     override suspend fun loadLinks(
         data: String,
         isCdn: Boolean,
