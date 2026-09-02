@@ -94,3 +94,5 @@ project(":TurkSporDestek").projectDir = file("TurkSporDestek")
 include(":ZbahisTV")
 project(":ZbahisTV").projectDir = file("ZbahisTV")
 
+include(":720Izle")
+project(":720Izle").projectDir = file("720Izle")
