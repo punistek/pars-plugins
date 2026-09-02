@@ -10,13 +10,11 @@ mavenCentral()
 maven("https://jitpack.io")
 }
 
-```
 dependencies {
     classpath("com.android.tools.build:gradle:8.7.3")
     classpath("com.github.recloudstream:gradle:-SNAPSHOT")
     classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0")
 }
-```
 
 }
 
@@ -47,7 +45,6 @@ val turkSporSharedModules = setOf(
 subprojects {
 if (name == "common") return@subprojects
 
-```
 apply(plugin = "com.android.library")
 apply(plugin = "kotlin-android")
 apply(plugin = "com.lagradost.cloudstream3.gradle")
@@ -118,7 +115,6 @@ dependencies {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.1")
     }
 }
-```
 
 }
 
