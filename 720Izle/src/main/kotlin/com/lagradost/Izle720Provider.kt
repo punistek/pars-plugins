@@ -154,7 +154,7 @@ class Izle720Provider : MainAPI() {
             ?.toIntOrNull()
 
         return newMovieLoadResponse(
-            title = title,
+            name = title,
             url = url,
             type = TvType.Movie,
             dataUrl = url
