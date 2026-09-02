@@ -42,7 +42,7 @@ class Izle720Provider : MainAPI() {
 
     private fun parseMovieCards(document: Document): List<SearchResponse> {
         return document
-            .select("a[href*='/filmler11/']")
+            .select("a[href*='/filmler/'], a[href*='/filmler11/'], .movie-box a, .poster a")
             .mapNotNull(::toMovieCard)
             .distinctBy { it.url }
     }
@@ -52,7 +52,7 @@ class Izle720Provider : MainAPI() {
             fixUrl(link.attr("href"))
         }
 
-        if (href.isBlank() || !href.contains("/filmler11/")) return null
+        if (href.isBlank() || href == "$mainUrl/") return null
 
         val img = link.selectFirst("img")
             ?: link.parent()?.selectFirst("img")
@@ -148,7 +148,7 @@ class Izle720Provider : MainAPI() {
                 ?.trim()
                 ?.takeIf { it.isNotBlank() }
 
-        val year = Regex("""\\b(19|20)\\d{2}\\b""")
+        val year = Regex("""\b(19|20)\d{2}\b""")
             .find(title)
             ?.value
             ?.toIntOrNull()
@@ -171,29 +171,41 @@ class Izle720Provider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val response = app.get(data)
+        val response = app.get(data, headers = headers)
         val document = response.document
 
-        val iframeUrl = document
-            .selectFirst("iframe[src*=hotstream.club]")
-            ?.attr("abs:src")
-            ?: Regex("""https?://hotstream\\.club/embed/[^"'\\\\\\s<>]+""")
-                .find(document.html())
-                ?.value
+        // 1. Genel iframe taraması
+        val iframeSources = document.select("iframe").mapNotNull { 
+            it.attr("abs:src").ifBlank { it.attr("src") } 
+        }.toMutableList()
 
-        if (iframeUrl != null) {
-            val fixedIframeUrl =
-                if (iframeUrl.startsWith("//")) "https:$iframeUrl"
-                else iframeUrl
+        // 2. Regex ile Hotstream ve alternatif player URL'lerini çek
+        val regexSources = Regex("""https?://[^\s"'<>]*(?:hotstream|play|embed|vidsrc)[^\s"'<>]*""")
+            .findAll(document.html())
+            .map { it.value }
+            .toList()
 
-            return loadExtractor(
-                url = fixedIframeUrl,
+        iframeSources.addAll(regexSources)
+
+        var loaded = false
+        for (rawUrl in iframeSources.distinct()) {
+            val fixedUrl = when {
+                rawUrl.startsWith("//") -> "https:$rawUrl"
+                !rawUrl.startsWith("http") -> fixUrl(rawUrl)
+                else -> rawUrl
+            }
+
+            if (fixedUrl.contains("facebook") || fixedUrl.contains("google") || fixedUrl.contains("twitter")) continue
+
+            val success = loadExtractor(
+                url = fixedUrl,
                 referer = data,
                 subtitleCallback = subtitleCallback,
                 callback = callback
             )
+            if (success) loaded = true
         }
 
-        return false
+        return loaded
     }
 }
