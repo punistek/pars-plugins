@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class HotstreamExtractor : ExtractorApi() {
     override var name = "Hotstream"
@@ -61,15 +62,16 @@ class HotstreamExtractor : ExtractorApi() {
         Log.d(tag, "#EXTM3U Dogrulandi")
 
         return listOf(
-            ExtractorLink(
+            newExtractorLink(
                 source = name,
                 name = name,
-                url = fullM3uUrl,
-                referer = url,
-                quality = Qualities.Unknown.value,
-                isM3u8 = true,
-                headers = requestHeaders
-            )
+                url = fullM3uUrl
+            ) {
+                this.referer = url
+                this.quality = Qualities.Unknown.value
+                this.isM3u8 = true
+                this.headers = requestHeaders
+            }
         )
     }
 }
