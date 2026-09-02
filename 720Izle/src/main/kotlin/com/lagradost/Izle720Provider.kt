@@ -3,93 +3,168 @@ package com.lagradost
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
+import java.net.URLEncoder
 
 class Izle720Provider : MainAPI() {
+
     override var mainUrl = "https://720izle.com"
     override var name = "720izle"
+    override var lang = "tr"
+
+    override val hasMainPage = true
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
-    override var hasMainPage = true
+    override val mainPage = mainPageOf(
+        "$mainUrl/" to "Yeni Filmler"
+    )
 
-    // 1. ANASAYFA KARTLARI (MainPageRequest parametresi ile güncellendi)
+    private val headers = mapOf(
+        "User-Agent" to USER_AGENT,
+        "Referer" to "$mainUrl/"
+    )
+
     override suspend fun getMainPage(
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
-        val url = if (page == 1) mainUrl else "$mainUrl/sayfa/$page"
-        val document = app.get(url).document
-
-        val home = document.select("div.movie-poster, div.movie-box, article.item, div.poster-pop").mapNotNull { element ->
-            val title = element.selectFirst("a.film-title, h2, .title, .name")?.text()?.trim() ?: return@mapNotNull null
-            val href = fixUrlNull(element.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
-
-            val poster = element.selectFirst("img")?.let { img ->
-                fixUrlNull(
-                    img.attr("data-src").ifEmpty {
-                        img.attr("data-original").ifEmpty {
-                            img.attr("src")
-                        }
-                    }
-                )
-            }
-
-            newMovieSearchResponse(title, href, TvType.Movie) {
-                this.posterUrl = poster
-            }
-        }
+        val url = if (page <= 1) request.data else "$mainUrl/page/$page/"
+        val document = app.get(url, headers = headers).document
+        val movies = parseMovieCards(document)
 
         return newHomePageResponse(
-            listOf(
-                HomePageList(
-                    name = request.name,
-                    list = home
-                )
-            ),
-            hasNext = true
+            request.name,
+            movies,
+            hasNext = movies.isNotEmpty()
         )
     }
 
-    // 2. ARAMA
+    private fun parseMovieCards(document: Document): List<SearchResponse> {
+        return document
+            .select("a[href*='/filmler11/']")
+            .mapNotNull(::toMovieCard)
+            .distinctBy { it.url }
+    }
+
+    private fun toMovieCard(link: Element): SearchResponse? {
+        val href = link.absUrl("href").ifBlank {
+            fixUrl(link.attr("href"))
+        }
+
+        if (href.isBlank() || !href.contains("/filmler11/")) return null
+
+        val img = link.selectFirst("img")
+            ?: link.parent()?.selectFirst("img")
+            ?: return null
+
+        val title = link.attr("title")
+            .ifBlank { img.attr("alt") }
+            .ifBlank {
+                link.parent()
+                    ?.selectFirst(".title, .movie-title, h2, h3")
+                    ?.text()
+                    .orEmpty()
+            }
+            .trim()
+
+        if (title.isBlank()) return null
+
+        val poster = img.attr("abs:data-src")
+            .ifBlank { img.attr("abs:data-lazy-src") }
+            .ifBlank { img.attr("abs:data-original") }
+            .ifBlank { img.attr("abs:src") }
+            .ifBlank {
+                img.attr("data-src")
+                    .takeIf { it.isNotBlank() }
+                    ?.let(::fixUrl)
+                    .orEmpty()
+            }
+            .ifBlank {
+                img.attr("src")
+                    .takeIf { it.isNotBlank() }
+                    ?.let(::fixUrl)
+                    .orEmpty()
+            }
+
+        return newMovieSearchResponse(
+            title,
+            href,
+            TvType.Movie
+        ) {
+            posterUrl = poster.takeIf { it.isNotBlank() }
+        }
+    }
+
     override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/?s=$query"
-        val document = app.get(searchUrl).document
+        val q = query.trim()
+        if (q.isBlank()) return emptyList()
 
-        return document.select("div.movie-poster, div.movie-box, article.item, div.poster-pop").mapNotNull { element ->
-            val title = element.selectFirst("a.film-title, h2, .title, .name")?.text()?.trim() ?: return@mapNotNull null
-            val href = fixUrlNull(element.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
-            val poster = element.selectFirst("img")?.let { img ->
-                fixUrlNull(
-                    img.attr("data-src").ifEmpty {
-                        img.attr("data-original").ifEmpty {
-                            img.attr("src")
-                        }
-                    }
-                )
-            }
+        val encoded = URLEncoder.encode(q, "UTF-8")
+        val document = app.get(
+            "$mainUrl/?s=$encoded",
+            headers = headers
+        ).document
 
-            newMovieSearchResponse(title, href, TvType.Movie) {
-                this.posterUrl = poster
-            }
+        return parseMovieCards(document)
+    }
+
+    override suspend fun quickSearch(query: String): List<SearchResponse> {
+        return search(query)
+    }
+
+    override suspend fun load(url: String): LoadResponse? {
+        val document = app.get(url, headers = headers).document
+
+        val title = document
+            .selectFirst("meta[property='og:title']")
+            ?.attr("content")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: document.selectFirst("h1")?.text()?.trim()
+            ?: document.title().trim().takeIf { it.isNotBlank() }
+            ?: return null
+
+        val poster = document
+            .selectFirst("meta[property='og:image']")
+            ?.attr("content")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: document
+                .selectFirst(".poster img, .movie-poster img, article img")
+                ?.let { img ->
+                    img.attr("abs:data-src").ifBlank { img.attr("abs:src") }
+                }
+                ?.takeIf { it.isNotBlank() }
+
+        val plot = document
+            .selectFirst("meta[property='og:description']")
+            ?.attr("content")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: document
+                .selectFirst("meta[name='description']")
+                ?.attr("content")
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+
+        val year = Regex("""\\b(19|20)\\d{2}\\b""")
+            .find(title)
+            ?.value
+            ?.toIntOrNull()
+
+        return newMovieLoadResponse(
+            title = title,
+            url = url,
+            type = TvType.Movie,
+            dataUrl = url
+        ) {
+            posterUrl = poster
+            this.plot = plot
+            this.year = year
         }
     }
 
-    // 3. FİLM DETAYI
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
-
-        val title = document.selectFirst("h1, .entry-title")?.text()?.trim() ?: "Bilinmeyen Film"
-        val poster = document.selectFirst("div.poster img, div.movie-poster img")?.let { img ->
-            fixUrlNull(img.attr("data-src").ifEmpty { img.attr("src") })
-        }
-        val description = document.selectFirst("div.entry-content, div.story, div.description")?.text()?.trim()
-
-        return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
-            this.plot = description
-        }
-    }
-
-    // 4. VİDEO LİNKLERİ
     override suspend fun loadLinks(
         data: String,
         isCdn: Boolean,
@@ -99,11 +174,17 @@ class Izle720Provider : MainAPI() {
         val response = app.get(data)
         val document = response.document
 
-        val iframeUrl = document.selectFirst("iframe[src*=hotstream.club]")?.attr("abs:src")
-            ?: Regex("""https?://hotstream\.club/embed/[^"'\\\s<>]+""").find(document.html())?.value
+        val iframeUrl = document
+            .selectFirst("iframe[src*=hotstream.club]")
+            ?.attr("abs:src")
+            ?: Regex("""https?://hotstream\\.club/embed/[^"'\\\\\\s<>]+""")
+                .find(document.html())
+                ?.value
 
         if (iframeUrl != null) {
-            val fixedIframeUrl = if (iframeUrl.startsWith("//")) "https:$iframeUrl" else iframeUrl
+            val fixedIframeUrl =
+                if (iframeUrl.startsWith("//")) "https:$iframeUrl"
+                else iframeUrl
 
             return loadExtractor(
                 url = fixedIframeUrl,
