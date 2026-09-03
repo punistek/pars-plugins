@@ -1,0 +1,13 @@
+package com.pars.ddizi
+
+import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
+import com.lagradost.cloudstream3.plugins.Plugin
+import android.content.Context
+
+@CloudstreamPlugin
+class DdiziPlugin : Plugin() {
+    override fun load(context: Context) {
+        registerMainAPI(Ddizi())
+        registerExtractorAPI(DdiziPlayerExtractor())
+    }
+}
