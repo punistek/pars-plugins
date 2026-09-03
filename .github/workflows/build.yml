@@ -28,6 +28,7 @@ on:
       - "ZbahisTV/**"
       - "720Izle/**"
       - "Ddizi/**"
+      - "TrDiziIzle/**"
       - "common/**"
       - "turkspor-core/**"
       - "assets/**"
@@ -67,7 +68,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build plugins and plugins.json
-        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make :ShowTV:make :Tizam:make :DiziFilmizle:make :IzleMac:make :TEST:make :TEST2:make :ArdaSpor:make :BeyazElma:make :Crex:make :InatBox:make :InatTV:make :InterSporTV:make :MacKeyfi:make :MahsunSports:make :SelcukSports:make :Taraftarium24:make :TurkSporDestek:make :ZbahisTV:make :720Izle:make :Ddizi:make makePluginsJson
+        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make :ShowTV:make :Tizam:make :DiziFilmizle:make :IzleMac:make :TEST:make :TEST2:make :ArdaSpor:make :BeyazElma:make :Crex:make :InatBox:make :InatTV:make :InterSporTV:make :MacKeyfi:make :MahsunSports:make :SelcukSports:make :Taraftarium24:make :TurkSporDestek:make :ZbahisTV:make :720Izle:make :Ddizi:make :TrDiziIzle:make makePluginsJson
 
       - name: Verify generated files
         run: |
@@ -96,6 +97,7 @@ jobs:
           test -f ZbahisTV/build/ZbahisTV.cs3
           test -f 720Izle/build/720Izle.cs3
           test -f Ddizi/build/Ddizi.cs3
+          test -f TrDiziIzle/build/TrDiziIzle.cs3
           test -f build/plugins.json
 
       - name: Prepare builds branch files
@@ -125,6 +127,7 @@ jobs:
           cp ZbahisTV/build/ZbahisTV.cs3 /tmp/pars-builds/ZbahisTV.cs3
           cp 720Izle/build/720Izle.cs3 /tmp/pars-builds/720Izle.cs3
           cp Ddizi/build/Ddizi.cs3 /tmp/pars-builds/Ddizi.cs3
+          cp TrDiziIzle/build/TrDiziIzle.cs3 /tmp/pars-builds/TrDiziIzle.cs3
           cp build/plugins.json /tmp/pars-builds/plugins.json
           cp plugin-meta.json /tmp/pars-builds/plugin-meta.json
           cp notices.json /tmp/pars-builds/notices.json
@@ -145,7 +148,7 @@ jobs:
 
           cp -a /tmp/pars-builds/. .
 
-          git add FilmMakinesi.cs3 FilmizleHell.cs3 ShowTV.cs3 Tizam.cs3 DiziFilmizle.cs3 IzleMac.cs3 TEST.cs3 TEST2.cs3 ArdaSpor.cs3 BeyazElma.cs3 Crex.cs3 InatBox.cs3 InatTV.cs3 InterSporTV.cs3 MacKeyfi.cs3 MahsunSports.cs3 SelcukSports.cs3 Taraftarium24.cs3 TurkSporDestek.cs3 ZbahisTV.cs3 720Izle.cs3 Ddizi.cs3 plugins.json plugin-meta.json notices.json
+          git add FilmMakinesi.cs3 FilmizleHell.cs3 ShowTV.cs3 Tizam.cs3 DiziFilmizle.cs3 IzleMac.cs3 TEST.cs3 TEST2.cs3 ArdaSpor.cs3 BeyazElma.cs3 Crex.cs3 InatBox.cs3 InatTV.cs3 InterSporTV.cs3 MacKeyfi.cs3 MahsunSports.cs3 SelcukSports.cs3 Taraftarium24.cs3 TurkSporDestek.cs3 ZbahisTV.cs3 720Izle.cs3 Ddizi.cs3 TrDiziIzle.cs3 plugins.json plugin-meta.json notices.json
           SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
           git commit -m "Build plugins ${SHORT_SHA}"
 
