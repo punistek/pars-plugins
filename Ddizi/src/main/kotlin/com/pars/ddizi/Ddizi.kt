@@ -68,20 +68,111 @@ class Ddizi : MainAPI() {
     // kartlarin (Eski Diziler arsivi, Yabanci Diziler izgarasi) ise -kaynak bos olsa
     // bile- bir <img> etiketi VAR. Bu yuzden img etiketi OLMAYAN linkleri atlayarak
     // tekrar eden kenar-cubugu gurultusunu eliyoruz.
-    private fun parseCards(doc: Document): List<SearchResponse> {
+    private fun cleanTitle(raw: String): String {
+        return raw
+            .trim()
+            .removeSuffix(" son bölüm izle")
+            .removeSuffix(" Son Bölüm İzle")
+            .removeSuffix(" izle")
+            .removeSuffix(" İzle")
+            .trim()
+    }
+
+    private fun parseSeriesGrid(doc: Document): List<SearchResponse> {
         val out = LinkedHashMap<String, SearchResponse>()
-        doc.select("a[href*=/diziler/]").forEach { a ->
+
+        // SADECE gerçek dizi kartları.
+        // left_sidebar / Bugünkü Bölümler / footer gibi alanlar bu selector'a girmez.
+        doc.select(".dizi-boxpost > a[href*=/diziler/]").forEach { a ->
             val href = fixUrlNull(a.attr("href")) ?: return@forEach
             if (!Regex("""/diziler/\d+/""").containsMatchIn(href)) return@forEach
-            val img = a.selectFirst("img") ?: a.parent()?.selectFirst("img")
-            if (img == null) return@forEach // resimsiz -> tekrar eden nav/sidebar linki
-            val title = (a.attr("title").ifBlank { a.text() }.ifBlank { img.attr("alt") }).trim()
-                .removeSuffix("son bölüm izle").removeSuffix("izle").trim()
+
+            val img = a.selectFirst("img") ?: return@forEach
+            val title = cleanTitle(
+                a.attr("title")
+                    .ifBlank { img.attr("alt") }
+                    .ifBlank { a.ownText() }
+            )
             if (title.isBlank()) return@forEach
+
+            val poster = pickImageUrl(img)
             out[href] = newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                posterUrl = pickImageUrl(img)
+                posterUrl = poster
             }
         }
+
+        return out.values.toList()
+    }
+
+    private fun normalizeWords(value: String): Set<String> {
+        val normalized = value
+            .lowercase()
+            .replace('ç', 'c')
+            .replace('ğ', 'g')
+            .replace('ı', 'i')
+            .replace('ö', 'o')
+            .replace('ş', 's')
+            .replace('ü', 'u')
+            .replace(Regex("""[^a-z0-9 ]+"""), " ")
+
+        val stop = setOf("ile", "ve", "bir", "son", "bolum", "sezon", "izle", "hd", "full")
+        return normalized
+            .split(Regex("""\s+"""))
+            .map { it.trim() }
+            .filter { it.length >= 2 && it !in stop && it.toIntOrNull() == null }
+            .toSet()
+    }
+
+    private fun parseNewlyAddedSeries(doc: Document): List<SearchResponse> {
+        // Yeni Eklenenler sayfası gerçek dizi kartı değil /izle/ bölüm kartları içeriyor.
+        // Bunları sayfadaki "Yerli Diziler" ana dizi URL'leriyle eşleştirip,
+        // bölüm kartındaki data-src posterini dizi kartına taşıyoruz.
+        val seriesLinks = doc.select(".left_sidebar a[href*=/diziler/]")
+            .mapNotNull { a ->
+                val href = fixUrlNull(a.attr("href")) ?: return@mapNotNull null
+                if (!Regex("""/diziler/\d+/""").containsMatchIn(href)) return@mapNotNull null
+                val title = cleanTitle(a.attr("title").ifBlank { a.text() })
+                if (title.isBlank()) return@mapNotNull null
+                Triple(href, title, normalizeWords(title))
+            }
+
+        val out = LinkedHashMap<String, SearchResponse>()
+
+        doc.select(".dizi-boxpost > a[href*=/izle/]").forEach { episodeCard ->
+            val img = episodeCard.selectFirst("img") ?: return@forEach
+            val episodeTitle = cleanTitle(
+                episodeCard.attr("title")
+                    .ifBlank { img.attr("alt") }
+                    .ifBlank { episodeCard.ownText() }
+            )
+            val episodeWords = normalizeWords(episodeTitle)
+            if (episodeWords.isEmpty()) return@forEach
+
+            val best = seriesLinks
+                .map { candidate ->
+                    val common = candidate.third.intersect(episodeWords).size
+                    val denom = minOf(candidate.third.size, episodeWords.size).coerceAtLeast(1)
+                    val score = common.toDouble() / denom.toDouble()
+                    Pair(candidate, score)
+                }
+                .filter { (candidate, score) ->
+                    val common = candidate.third.intersect(episodeWords).size
+                    score >= 0.60 && (common >= 2 || candidate.third.size == 1 || episodeWords.size == 1)
+                }
+                .maxByOrNull { it.second }
+                ?.first
+                ?: return@forEach
+
+            val poster = pickImageUrl(img)
+            out[best.first] = newTvSeriesSearchResponse(
+                best.second,
+                best.first,
+                TvType.TvSeries
+            ) {
+                posterUrl = poster
+            }
+        }
+
         return out.values.toList()
     }
 
@@ -95,7 +186,11 @@ class Ddizi : MainAPI() {
         val pageUrl = if (isEskiDiziler && page > 1) "$mainUrl/eski.diziler/$page" else request.data
 
         val doc = app.get(pageUrl).document
-        val cards = parseCards(doc)
+
+        val cards = when (request.data) {
+            "$mainUrl/yeni-eklenenler7" -> parseNewlyAddedSeries(doc)
+            else -> parseSeriesGrid(doc)
+        }
 
         // "Sonraki »" linki varsa gidilecek baska sayfa var demektir.
         val hasNext = isEskiDiziler && doc.select("a").any { it.text().contains("Sonraki", ignoreCase = true) }
@@ -105,7 +200,7 @@ class Ddizi : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val doc = app.get("$mainUrl/arama/${query.replace(" ", "+")}").document
-        return parseCards(doc)
+        return parseSeriesGrid(doc)
     }
 
     // Her dizi sayfasinin sag tarafinda "Bugünkü Bölümler" adinda TAMAMEN BASKA
@@ -116,11 +211,32 @@ class Ddizi : MainAPI() {
     //   1) href'in son parcasi (slug), dizi URL'sinden turetilen "temel slug" ile basliyor mu?
     //   2) baglanti metni dizinin (temizlenmis) basligini iceriyor mu?
     // Ikisinden biri yeterli - yanlis-negatifi (gercek bolumu atlamayi) engellemek icin.
-    private fun episodeBelongsToShow(href: String, text: String, baseSlug: String, showTitle: String): Boolean {
-        val hrefSlug = href.trimEnd('/').substringAfterLast("/").removeSuffix(".htm")
-        val slugMatch = baseSlug.isNotBlank() && hrefSlug.startsWith(baseSlug)
-        val titleMatch = showTitle.isNotBlank() && text.contains(showTitle, ignoreCase = true)
-        return slugMatch || titleMatch
+    private fun episodeBelongsToShow(
+        href: String,
+        text: String,
+        baseSlug: String,
+        showTitle: String
+    ): Boolean {
+        val hrefSlug = href
+            .trimEnd('/')
+            .substringAfterLast("/")
+            .removeSuffix(".htm")
+            .lowercase()
+
+        // Bugünkü Bölümler widget'ındaki MasterChef / Doğanın Kanunu gibi
+        // başka dizileri kesin olarak dışarıda bırak.
+        if (baseSlug.isNotBlank() && hrefSlug.startsWith(baseSlug.lowercase())) {
+            return true
+        }
+
+        // Çok istisnai eski sayfalarda URL slug farklıysa başlık tabanlı yedek.
+        // Tek kelime eşleşmesini kabul etmiyoruz; yanlış dizi karışmasını önler.
+        val showWords = normalizeWords(showTitle)
+        val textWords = normalizeWords(text)
+        if (showWords.size < 2 || textWords.isEmpty()) return false
+
+        val common = showWords.intersect(textWords).size
+        return common >= 2 && common.toDouble() / showWords.size.toDouble() >= 0.60
     }
 
     override suspend fun load(url: String): LoadResponse {
@@ -144,7 +260,10 @@ class Ddizi : MainAPI() {
         val baseSlug = urlSlug
             .removeSuffix("-son-bolum-izle")
             .removeSuffix("-izle")
-            .replace(Regex("""-\d+$"""), "") // "-188", "-35" gibi sondaki toplam-bolum sayisini at
+            .replace(Regex("""-\\d+-son-bolum-izle$"""), "")
+            .replace(Regex("""-\\d+$"""), "")
+            .replace(Regex("""-hd\\d*$""", RegexOption.IGNORE_CASE), "")
+            .trim('-')
 
         // Bolum linkleri /izle/{id}/{slug}.htm formatinda. Tek sayfada tum bolumler
         // olmayabilir - uzun soluklu diziler (ör. Teşkilat) icin site
@@ -190,10 +309,23 @@ class Ddizi : MainAPI() {
         // teskilatkapak-min.jpg) - lazy-load tahmini gerektirmiyor. Ilk bolumun
         // sayfasini bir kez cekip oradan alıyoruz; basarisiz olursa lazy-load
         // tahminine (pickImageUrl) dusuyoruz.
+        val selfPoster = doc
+            .select(".dizi-boxpost > a[href*=/diziler/]")
+            .firstOrNull { a ->
+                fixUrlNull(a.attr("href"))?.trimEnd('/') == baseShowUrl
+            }
+            ?.selectFirst("img")
+            ?.let(::pickImageUrl)
+
         val firstEpisodeHref = collected.keys.firstOrNull()
-        val poster = firstEpisodeHref?.let {
+        val poster = selfPoster ?: firstEpisodeHref?.let {
             try {
-                app.get(it).document.selectFirst("meta[property=og:image]")?.attr("content")?.let { img -> fixUrl(img) }
+                val episodeDoc = app.get(it).document
+                episodeDoc.selectFirst("meta[property=og:image]")?.attr("content")
+                    ?.takeIf { value -> value.isNotBlank() }
+                    ?.let { img -> fixUrl(img) }
+                    ?: episodeDoc.selectFirst(".dizi-boxpost img, img[data-src*=/diziresimleri/]")
+                        ?.let(::pickImageUrl)
             } catch (e: Throwable) {
                 null
             }
