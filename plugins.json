@@ -1,0 +1,467 @@
+[
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/720Izle.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "720Izle",
+        "internalName": "720Izle",
+        "authors": [
+            "PARS"
+        ],
+        "description": "720izle",
+        "fileSize": 15727,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "iconUrl": "https://www.google.com/s2/favicons?domain=720izle.com&sz=%size%",
+        "apiVersion": 1,
+        "fileHash": "sha256-5fc6888849d79ee3cacec9c3dbb72df1a896a0aed2ef6a7b424b4be48d5a76f6"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/ArdaSpor.cs3",
+        "status": 3,
+        "version": 5,
+        "name": "ArdaSpor",
+        "internalName": "ArdaSpor",
+        "authors": [
+            
+        ],
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 57327,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/ArdaSpor.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-a4fb235fd433ad0316fa55dd61b4848aacaf15d1312ea3c08fe68b0aa85e7203"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/BeyazElma.cs3",
+        "status": 3,
+        "version": 5,
+        "name": "BeyazElma",
+        "internalName": "BeyazElma",
+        "authors": [
+            
+        ],
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 79230,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/BeyazElma.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-d5ea0fc7cf2840c31030cdc9051c21fcc10a0b0454a641ac43b4a0ef4f19fb23"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/Crex.cs3",
+        "status": 3,
+        "version": 4,
+        "name": "Crex",
+        "internalName": "Crex",
+        "authors": [
+            
+        ],
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 57811,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/Crex.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-0c9cd1b238dfa589c822984d8fe1bbf3e8294004201d53a4409e7a447f7acd04"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/Ddizi.cs3",
+        "status": 1,
+        "version": 2,
+        "name": "Ddizi",
+        "internalName": "Ddizi",
+        "authors": [
+            "PARS"
+        ],
+        "description": "Ddizi.im - T\u00fcrk ve yabanc\u0131 dizi kayna\u011f\u0131",
+        "fileSize": 27371,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "iconUrl": "https://www.ddizi.im/images/logo.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-185bf6f0711097d3236dda53effc688654a0b16dcb6e57fc6597ca17bce8ba0e"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/DiziFilmizle.cs3",
+        "status": 1,
+        "version": 2,
+        "name": "DiziFilmizle",
+        "internalName": "DiziFilmizle",
+        "authors": [
+            "PARS"
+        ],
+        "description": "DiziFilmizle.to - Yabanc\u0131 diziler",
+        "fileSize": 36447,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "iconUrl": "https://dizifilmizle.to/favicon.ico",
+        "apiVersion": 1,
+        "fileHash": "sha256-431ecf3a3fbdd5ba11493b75d12c8e0cf7315d02c24043744dcb477038f2bc56"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/FilmizleHell.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "FilmizleHell",
+        "internalName": "FilmizleHell",
+        "authors": [
+            "PARS"
+        ],
+        "description": "FilmizleHell film kayna\u011f\u0131",
+        "fileSize": 18311,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Movie"
+        ],
+        "iconUrl": "https://filmizlehell.com/favicon.ico",
+        "apiVersion": 1,
+        "fileHash": "sha256-6dde7f101838276171dbbede9300910a30d474fab2885343afdcc3ca8f7346bd"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/FilmMakinesi.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "FilmMakinesi",
+        "internalName": "FilmMakinesi",
+        "authors": [
+            "PARS"
+        ],
+        "description": "FilmMakinesi film kayna\u011f\u0131",
+        "fileSize": 30312,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Movie"
+        ],
+        "iconUrl": "https://filmmakinesi.to/favicon.ico",
+        "apiVersion": 1,
+        "fileHash": "sha256-7957500162a0944b04150b4beac907f51293d9949029ee9f8a15ad94027eb798"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/InatBox.cs3",
+        "status": 3,
+        "version": 3,
+        "name": "InatBox",
+        "internalName": "InatBox",
+        "authors": [
+            "Wiojelt",
+            "murattunc05",
+            "feroxx",
+            "JustRelaxable",
+            "keyiflerolsun"
+        ],
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 92779,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/InatBox.webp",
+        "apiVersion": 1,
+        "fileHash": "sha256-7b05b03f6622727bc1f08425b99592a6e202d856c6aaa2e2f0820ed2724eafc7"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/InatTV.cs3",
+        "status": 3,
+        "version": 4,
+        "name": "InatTV",
+        "internalName": "InatTV",
+        "authors": [
+            
+        ],
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 55170,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/InatTV.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-3e3c956a223307b3edad6ab7c03e7fd368bd0b8e73200b5ab97b7e7763b35148"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/InterSporTV.cs3",
+        "status": 3,
+        "version": 5,
+        "name": "InterSporTV",
+        "internalName": "InterSporTV",
+        "authors": [
+            
+        ],
+        "description": "\ud83d\udd34 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 79226,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/InterSporTV.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-a5830f5a59f1a29aa903e268098ee0aac6de5fcfb0ac96b4d836f1b291b29f66"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/IzleMac.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "IzleMac",
+        "internalName": "IzleMac",
+        "authors": [
+            "PARS"
+        ],
+        "description": "ArdaSpor canl\u0131 spor ve TV kanallar\u0131",
+        "fileSize": 16021,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://www.ardaspor30.top/assets/img/55557ardafav.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-677cd14b82cc1c4ebf2e606f9cb1b94b2f37bfe2597c050bece0da17b0cf54c0"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/MacKeyfi.cs3",
+        "status": 3,
+        "version": 5,
+        "name": "MacKeyfi",
+        "internalName": "MacKeyfi",
+        "authors": [
+            
+        ],
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 79202,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/MacKeyfi.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-7674f652448975ee20b7af98d2d591965610108e5f9001ed20eefc1769e4fbb8"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/MahsunSports.cs3",
+        "status": 3,
+        "version": 4,
+        "name": "MahsunSports",
+        "internalName": "MahsunSports",
+        "authors": [
+            
+        ],
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 56311,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/MahsunSports.jpg",
+        "apiVersion": 1,
+        "fileHash": "sha256-f43052119225924fc169809d566cc037c2c1117eb2beb2b1cd969cb3ad58c806"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/SelcukSports.cs3",
+        "status": 3,
+        "version": 7,
+        "name": "SelcukSports",
+        "internalName": "SelcukSports",
+        "authors": [
+            
+        ],
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 52802,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/SelcukSports.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-6dd555c9d54fdec24e54128d9698d5cc67701810a2a8ae587914f53316bcdf17"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/ShowTV.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "ShowTV",
+        "internalName": "ShowTV",
+        "authors": [
+            "PARS"
+        ],
+        "description": "Show TV dizilerini ve b\u00f6l\u00fcmlerini do\u011frudan ShowTV \u00fczerinden otomatik listeler.",
+        "fileSize": 27147,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "iconUrl": "https://mo.ciner.com.tr/assets/images/showtv-logo-400x400.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-071adc262e7ef25c36ae1016bd1b245e9fb0bbd403266606b311c2ef31ffc305"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/Taraftarium24.cs3",
+        "status": 3,
+        "version": 6,
+        "name": "Taraftarium24",
+        "internalName": "Taraftarium24",
+        "authors": [
+            
+        ],
+        "description": "\ud83d\udd34 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 53270,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/Taraftarium24.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-9d0f31407e5368eb1f3ed2d1218ea531a1674f7c8158e8c5f9a02448c94868d3"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TEST.cs3",
+        "status": 1,
+        "version": 3,
+        "name": "TEST",
+        "internalName": "TEST",
+        "authors": [
+            "PARS"
+        ],
+        "description": "TEST PARS TV",
+        "fileSize": 15548,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://patronlig20.cfd/favicon.ico",
+        "apiVersion": 1,
+        "fileHash": "sha256-c37a4eb5eef93e4bed397412fe1550af0ff3d1034207089a82ccff22ea16a524"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TEST2.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "TEST2",
+        "internalName": "TEST2",
+        "authors": [
+            "PARS"
+        ],
+        "description": "TEST - Betmarino canl\u0131 kanal ve ma\u00e7 kayna\u011f\u0131",
+        "fileSize": 15012,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://www.betmarinotv1101.site/favicon.ico",
+        "apiVersion": 1,
+        "fileHash": "sha256-2baea2849430db9a0479ef59315a3fcca764c56662cfab4bc3e874c02eed3325"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/Tizam.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "Tizam",
+        "internalName": "Tizam",
+        "authors": [
+            "PARS"
+        ],
+        "description": "Tizam provider",
+        "fileSize": 14410,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "ru",
+        "tvTypes": [
+            "NSFW"
+        ],
+        "iconUrl": "https://ane.tizam.org/templates/tizam/images/favicon.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-4e12a03ea61a051d2a2304ec556127fd21dd2d7973a883db331c687eb791be92"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TrDiziIzle.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "TrDiziIzle",
+        "internalName": "TrDiziIzle",
+        "authors": [
+            "PARS"
+        ],
+        "description": "Trdiziizle.tv - T\u00fcrk dizi kayna\u011f\u0131",
+        "fileSize": 18068,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "iconUrl": "https://www.trdiziizle.tv/logo.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-01ac97a88fdab52e86c7e48a5688916f4837e96fe4805df83a8cedc12597340e"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TurkSporDestek.cs3",
+        "status": 1,
+        "version": 1,
+        "name": "TurkSporDestek",
+        "internalName": "TurkSporDestek",
+        "authors": [
+            
+        ],
+        "description": "made by Wiojelt with love \u00b7 buymeacoffee.com/wiojelt",
+        "fileSize": 26169,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Others"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/support-qr.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-9681e85fdb4168394d82959226a4c76d04d26891646edfedf5b37daa2cf9d8e7"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/ZbahisTV.cs3",
+        "status": 3,
+        "version": 5,
+        "name": "ZbahisTV",
+        "internalName": "ZbahisTV",
+        "authors": [
+            
+        ],
+        "description": "\ud83d\udd34 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "fileSize": 79204,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "language": "tr",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/ZbahisTV.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-99df4f487162d4e5b489d451af3d97100fb73703a40e1f0c98e5afd113b55f07"
+    }
+]
