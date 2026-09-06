@@ -71,18 +71,17 @@ class HDFilmCehennemi : MainAPI() {
     }
 
     override val mainPage = mainPageOf(
-        "${mainUrl}/load/page/sayfano/home/"                         to "Yeni Eklenen Filmler",
-        "${mainUrl}/load/page/sayfano/home-series/"                  to "Yeni Eklenen Diziler",
-
-        // Kullanıcının verdiği gerçek kategori sayfaları.
-        // Bunları doğrudan kullanıyoruz; böylece anasayfadaki kısa carousel ile
-        // sınırlı kalmayıp kategori sayfasındaki gerçek içerik listesi geliyor.
-        "${mainUrl}/category/tavsiye-filmler-izle3/"                  to "Tavsiye Filmler",
-        "${mainUrl}/imdb-7-puan-uzeri-filmler-2/"                    to "IMDB 7+ Filmler",
-        "${mainUrl}/load/page/sayfano/mostCommented/"                to "En Çok Yorumlananlar",
-        "${mainUrl}/en-cok-begenilen-filmleri-izle-4/"               to "En Çok Beğenilenler",
-        "${mainUrl}/category/nette-ilk-filmler-1/"                   to "Nette İlk Filmler",
-        "${mainUrl}/yabancidiziizle-5/"                              to "Yabancı Diziler"
+        // HDFilmCehennemi liste sayfalarının HTML'inde bulunan gerçek
+        // data-page-action değerleri kullanılıyor. Böylece hem ilk sayfa hem
+        // "Tümünü Gör" page=2,3,4... aynı JSON/AJAX yapısından gelir.
+        "${mainUrl}/load/page/sayfano/home/"                              to "Yeni Eklenen Filmler",
+        "${mainUrl}/load/page/sayfano/home-series/"                       to "Yeni Eklenen Diziler",
+        "${mainUrl}/load/page/sayfano/categories/tavsiye-filmler-izle3/"  to "Tavsiye Filmler",
+        "${mainUrl}/load/page/sayfano/imdb7/"                             to "IMDB 7+ Filmler",
+        "${mainUrl}/load/page/sayfano/mostCommented/"                     to "En Çok Yorumlananlar",
+        "${mainUrl}/load/page/sayfano/mostLiked/"                         to "En Çok Beğenilenler",
+        "${mainUrl}/load/page/sayfano/categories/nette-ilk-filmler/"      to "Nette İlk Filmler",
+        "${mainUrl}/load/page/sayfano/home-series/"                       to "Yabancı Diziler"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -91,45 +90,9 @@ class HDFilmCehennemi : MainAPI() {
 
         val headers = mapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-            "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
             "Accept" to "*/*",
             "X-Requested-With" to "fetch"
         )
-
-        /*
-         * İki tip ana sayfa kaynağı destekleniyor:
-         *
-         * 1) /load/page/sayfano/...  -> sitenin JSON/AJAX cevabı
-         * 2) gerçek kategori URL'si  -> normal HTML sayfası
-         *
-         * Böylece kategori URL'lerini tahmini bir endpoint'e çevirmiyoruz.
-         */
-        if (!request.data.contains("/load/page/")) {
-            // Şimdilik kategori ana sayfasını bir kez getiriyoruz.
-            // "Tümünü Gör" ekranında gerçek sayfalama ayrıca bağlanacak.
-            if (page > 1) {
-                return newHomePageResponse(request.name, emptyList())
-            }
-
-            val response = app.get(
-                request.data,
-                headers = headers,
-                referer = mainUrl,
-                interceptor = interceptor
-            )
-
-            if (!response.isSuccessful || response.text.contains("Sayfa Bulunamadı")) {
-                return newHomePageResponse(request.name, emptyList())
-            }
-
-            val document = response.document
-            val home = document
-                .select("a.poster, a[title]")
-                .mapNotNull { it.toSearchResult() }
-                .distinctBy { it.url }
-
-            return newHomePageResponse(request.name, home)
-        }
 
         val url = request.data.replace("sayfano", page.toString())
         val response = app.get(
@@ -143,10 +106,14 @@ class HDFilmCehennemi : MainAPI() {
             return newHomePageResponse(request.name, emptyList())
         }
 
-        val aa: HDFC = objectMapper.readValue(response.text)
-        val document = Jsoup.parse(aa.html)
+        val payload: HDFC = objectMapper.readValue(response.text)
+        val document = Jsoup.parse(payload.html)
+
+        // AJAX cevabında asıl içerik kartları Poster linkleridir.
+        // Genel "a[title]" seçicisi Türk, DC, Marvel, Amazon, 1080p gibi
+        // filtre/menü bağlantılarını da film sanıyordu.
         val home = document
-            .select("a")
+            .select("a[aria-label=Poster]")
             .mapNotNull { it.toSearchResult() }
             .distinctBy { it.url }
 
@@ -154,16 +121,35 @@ class HDFilmCehennemi : MainAPI() {
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val title = this.attr("title")
-        val href = fixUrlNull(this.attr("href")) ?: return null
-        val image = this.selectFirst("img")
+        val href = fixUrlNull(attr("href")) ?: return null
+
+        val image = selectFirst("img")
+        val rawTitle = attr("title")
+            .ifBlank { image?.attr("alt").orEmpty() }
+            .trim()
+
+        if (rawTitle.isBlank()) return null
+
+        val title = rawTitle
+            .replace(Regex("""\s+izle$""", RegexOption.IGNORE_CASE), "")
+            .trim()
+
         val posterUrl = fixUrlNull(
             image?.attr("data-src")?.takeIf { it.isNotBlank() }
                 ?: image?.attr("src")
         )
 
-        return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = posterUrl
+        val looksSeries = href.contains("dizi", ignoreCase = true) ||
+            attr("data-type").contains("series", ignoreCase = true)
+
+        return if (looksSeries) {
+            newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                this.posterUrl = posterUrl
+            }
+        } else {
+            newMovieSearchResponse(title, href, TvType.Movie) {
+                this.posterUrl = posterUrl
+            }
         }
     }
 
