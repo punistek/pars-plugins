@@ -22,74 +22,126 @@ class DiziYou : MainAPI() {
     override var sequentialMainPageDelay       = 250L // ? 0.25 saniye
     override var sequentialMainPageScrollDelay = 250L // ? 0.25 saniye
     
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        if (page > 1) return newHomePageResponse(request.name, emptyList())
-    
-        val document = app.get(mainUrl).document
-        val home = ArrayList<HomePageList>()
-    
-        // 1. Popüler Dizilerden Son Bölümler
-        val populer = document.select("div.dsmobil div.listepisodes").mapNotNull { el ->
-            val episodeAnchor = el.selectFirst("a") ?: return@mapNotNull null
-            val fullEpisodeUrl = fixUrlNull(episodeAnchor.attr("href")) ?: return@mapNotNull null
-            val slug = fullEpisodeUrl
-                .removePrefix("$mainUrl/")
-                .replace(Regex("""-\d+-sezon-\d+-bolum/?$"""), "")
-            val href = "$mainUrl/$slug/"
-        
-            // alt="..." değeri başlık olarak
-            val title = episodeAnchor.selectFirst("img[alt]")?.attr("alt")?.trim()
-                ?: return@mapNotNull null
-        
-            // poster görseli (data-src veya src)
-            val poster = fixUrlNull(
-                episodeAnchor.selectFirst("img.lazy")?.attr("data-src")
-                    ?: episodeAnchor.selectFirst("img")?.attr("src")
-            )
-        
-            newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                posterUrl = poster
+    private val genrePages = linkedMapOf(
+        "Aile" to "Aile",
+        "Aksiyon" to "Aksiyon",
+        "Animasyon" to "Animasyon",
+        "Belgesel" to "Belgesel",
+        "Bilim Kurgu" to "Bilim%20Kurgu",
+        "Dram" to "Dram",
+        "Fantazi" to "Fantazi",
+        "Gerilim" to "Gerilim",
+        "Gizem" to "Gizem",
+        "Komedi" to "Komedi",
+        "Korku" to "Korku",
+        "Macera" to "Macera",
+        "Politik" to "Politik",
+        "Savaş" to "Sava%C5%9F",
+        "Suç" to "Su%C3%A7",
+        "Vahşi Batı" to "Vah%C5%9Fi%20Bat%C4%B1",
+    )
+
+    override val mainPage = mainPageOf(
+        "$mainUrl/" to "Öne Çıkanlar",
+        *genrePages.map { (name, encoded) ->
+            "$mainUrl/dizi-arsivi/?tur=$encoded" to name
+        }.toTypedArray()
+    )
+
+    override suspend fun getMainPage(
+        page: Int,
+        request: MainPageRequest
+    ): HomePageResponse {
+        val isFeatured = request.name == "Öne Çıkanlar"
+
+        if (isFeatured) {
+            // Ana sayfadaki "Dikkat Çeken Diziler" bölümü, uygulamadaki
+            // büyük Öne Çıkanlar carousel'i için kullanılır.
+            if (page > 1) {
+                return newHomePageResponse(request.name, emptyList())
             }
+
+            val document = app.get(mainUrl).document
+
+            val featured = document
+                .select("div.incontentyeni div#list-series-main")
+                .mapNotNull { it.toHomeCardResult() }
+                .distinctBy { it.url }
+
+            return newHomePageResponse(request.name, featured)
         }
-        if (populer.isNotEmpty()) home.add(HomePageList("Popüler Dizilerden Son Bölümler", populer))
-    
-        // 2. Son Eklenen Diziler
-        val sonEklenen = document.select("div.dsmobil2 div#list-series-main").mapNotNull { el ->
-            val href = fixUrlNull(el.selectFirst("div.cat-img-main a")?.attr("href")) ?: return@mapNotNull null
-            val poster = fixUrlNull(el.selectFirst("div.cat-img-main img")?.attr("src"))
-            val title = el.selectFirst("div.cat-title-main a")?.text()?.trim() ?: return@mapNotNull null
-    
-            newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                posterUrl = poster
-            }
+
+        // Dizi Arşivi filtre sayfasının gerçek sayfalama biçimi:
+        // /dizi-arsivi/page/2/?tur=Aile
+        val pageUrl = if (page <= 1) {
+            request.data
+        } else {
+            val query = request.data.substringAfter("?", "")
+            val suffix = if (query.isBlank()) "" else "?$query"
+            "$mainUrl/dizi-arsivi/page/$page/$suffix"
         }
-        if (sonEklenen.isNotEmpty()) home.add(HomePageList("Son Eklenen Diziler", sonEklenen))
-    
-        // 3. Efsane Diziler
-        val efsane = document.select("div.incontent div#list-series-main").mapNotNull { el ->
-            val href = fixUrlNull(el.selectFirst("div.cat-img-main a")?.attr("href")) ?: return@mapNotNull null
-            val poster = fixUrlNull(el.selectFirst("div.cat-img-main img")?.attr("src"))
-            val title = el.selectFirst("div.cat-title-main a")?.text()?.trim() ?: return@mapNotNull null
-    
-            newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                posterUrl = poster
-            }
+
+        val document = app.get(pageUrl).document
+
+        // Filtrelenmiş arşivde her gerçek dizi kartı div.single-item.
+        val items = document
+            .select("div.seriescontent div.single-item")
+            .mapNotNull { it.toArchiveResult() }
+            .distinctBy { it.url }
+
+        return newHomePageResponse(request.name, items)
+    }
+
+    private fun Element.toHomeCardResult(): SearchResponse? {
+        val anchor = selectFirst("a[href]") ?: return null
+        val href = fixUrlNull(anchor.attr("href")) ?: return null
+
+        val title = (
+            anchor.attr("aria-label").takeIf { it.isNotBlank() }
+                ?: anchor.attr("title").takeIf { it.isNotBlank() }
+                ?: selectFirst("div.cat-title-main")?.text()
+        )?.trim() ?: return null
+
+        val poster = fixUrlNull(
+            selectFirst("div.cat-img-main img")?.attr("data-src")
+                ?.takeIf { it.isNotBlank() }
+                ?: selectFirst("div.cat-img-main img")?.attr("src")
+        )
+
+        return newTvSeriesSearchResponse(
+            title,
+            href,
+            TvType.TvSeries
+        ) {
+            posterUrl = poster
         }
-        if (efsane.isNotEmpty()) home.add(HomePageList("Efsane Diziler", efsane))
-    
-        // 4. Dikkat Çeken Diziler
-        val dikkat = document.select("div.incontentyeni div#list-series-main").mapNotNull { el ->
-            val href = fixUrlNull(el.selectFirst("div.cat-img-main a")?.attr("href")) ?: return@mapNotNull null
-            val poster = fixUrlNull(el.selectFirst("div.cat-img-main img")?.attr("src"))
-            val title = el.selectFirst("div.cat-title-main a")?.text()?.trim() ?: return@mapNotNull null
-    
-            newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                posterUrl = poster
-            }
+    }
+
+    private fun Element.toArchiveResult(): SearchResponse? {
+        val titleAnchor =
+            selectFirst("div#categorytitle a[href]")
+                ?: selectFirst("div.cat-img a[href]")
+                ?: return null
+
+        val href = fixUrlNull(titleAnchor.attr("href")) ?: return null
+        val title = titleAnchor.text().trim().ifBlank {
+            titleAnchor.attr("title").trim()
         }
-        if (dikkat.isNotEmpty()) home.add(HomePageList("Dikkat Çeken Diziler", dikkat))
-    
-        return newHomePageResponse(home)
+        if (title.isBlank()) return null
+
+        val image = selectFirst("div.cat-img img")
+        val poster = fixUrlNull(
+            image?.attr("data-src")?.takeIf { it.isNotBlank() }
+                ?: image?.attr("src")
+        )
+
+        return newTvSeriesSearchResponse(
+            title,
+            href,
+            TvType.TvSeries
+        ) {
+            posterUrl = poster
+        }
     }
 
     private fun Element.toMainPageResult(): SearchResponse? {
