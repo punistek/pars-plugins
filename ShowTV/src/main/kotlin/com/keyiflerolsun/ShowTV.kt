@@ -20,7 +20,8 @@ class ShowTV : MainAPI() {
     override val supportedTypes = setOf(TvType.TvSeries)
 
     override val mainPage = mainPageOf(
-        "$mainUrl/diziler" to "Öne Çıkanlar"
+        "$mainUrl/diziler?pars_section=featured" to "Öne Çıkanlar",
+        "$mainUrl/diziler?pars_section=all" to "Tüm Diziler"
     )
 
     private data class SeriesCard(
@@ -41,25 +42,45 @@ class ShowTV : MainAPI() {
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
+        // pars_section sadece bizim provider içi ayıracımız.
+        // Show TV'ye her zaman gerçek /diziler adresini gönderiyoruz.
         val document = app.get(
-            request.data,
+            "$mainUrl/diziler",
             headers = defaultHeaders()
         ).document
 
-        /*
-         * /diziler sayfasındaki gerçek "Tüm Diziler" grid'i:
-         *
-         * <div data-name="box-type6">
-         *   <a class="group" href="/dizi/tanitim/..." title="...">
-         *
-         * Menü, bildirim, slider ve fragman linklerini toplamıyoruz.
-         */
         val allSeries = parseFullSeriesGrid(document)
 
+        if (request.name == "Öne Çıkanlar") {
+            // Büyük hero/carousel bölümü.
+            // Burada yalnız ilk 6 dizi gösterilir; bütün arşivi buraya basmayız.
+            if (page > 1) {
+                return newHomePageResponse(request.name, emptyList())
+            }
+
+            val featured = allSeries
+                .take(6)
+                .map { item ->
+                    newTvSeriesSearchResponse(
+                        item.title,
+                        item.url,
+                        TvType.TvSeries
+                    ) {
+                        this.posterUrl = item.poster
+                    }
+                }
+
+            return newHomePageResponse(
+                request.name,
+                featured
+            )
+        }
+
         /*
-         * Ana ekranda sadece 10 kart göster.
-         * Flutter'daki "Tümünü Gör" ekranı page=2,3,4... çağırdığı için
-         * aynı listeyi 10'arlı sayfalıyoruz.
+         * "Tüm Diziler" ayrı section.
+         * İlk ekranda 10 kart gelir.
+         * Flutter bu section için "Tümünü Gör" gösterir.
+         * Tümünü Gör ekranında page=2,3,4... ile 10'ar 10'ar devam eder.
          */
         val pageSize = 10
         val safePage = page.coerceAtLeast(1)
