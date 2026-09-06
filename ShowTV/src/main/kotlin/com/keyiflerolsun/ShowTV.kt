@@ -20,7 +20,7 @@ class ShowTV : MainAPI() {
     override val supportedTypes = setOf(TvType.TvSeries)
 
     override val mainPage = mainPageOf(
-        "$mainUrl/diziler" to "Show TV Dizileri"
+        "$mainUrl/diziler" to "Öne Çıkanlar"
     )
 
     private data class SeriesCard(
@@ -46,21 +46,105 @@ class ShowTV : MainAPI() {
             headers = defaultHeaders()
         ).document
 
-        val series = parseSeries(document)
-            .map { item ->
-                newTvSeriesSearchResponse(
-                    item.title,
-                    item.url,
-                    TvType.TvSeries
-                ) {
-                    this.posterUrl = item.poster
-                }
+        /*
+         * /diziler sayfasındaki gerçek "Tüm Diziler" grid'i:
+         *
+         * <div data-name="box-type6">
+         *   <a class="group" href="/dizi/tanitim/..." title="...">
+         *
+         * Menü, bildirim, slider ve fragman linklerini toplamıyoruz.
+         */
+        val allSeries = parseFullSeriesGrid(document)
+
+        /*
+         * Ana ekranda sadece 10 kart göster.
+         * Flutter'daki "Tümünü Gör" ekranı page=2,3,4... çağırdığı için
+         * aynı listeyi 10'arlı sayfalıyoruz.
+         */
+        val pageSize = 10
+        val safePage = page.coerceAtLeast(1)
+        val fromIndex = (safePage - 1) * pageSize
+
+        val pageItems = if (fromIndex >= allSeries.size) {
+            emptyList()
+        } else {
+            allSeries
+                .drop(fromIndex)
+                .take(pageSize)
+        }
+
+        val series = pageItems.map { item ->
+            newTvSeriesSearchResponse(
+                item.title,
+                item.url,
+                TvType.TvSeries
+            ) {
+                this.posterUrl = item.poster
             }
+        }
 
         return newHomePageResponse(
             request.name,
             series
         )
+    }
+
+    private fun parseFullSeriesGrid(document: Document): List<SeriesCard> {
+        val result = LinkedHashMap<String, SeriesCard>()
+
+        document
+            .select(
+                "div[data-name=box-type6] > a.group[href^=/dizi/tanitim/], " +
+                    "div[data-name=box-type6] figure a.group[href^=/dizi/tanitim/]"
+            )
+            .forEach { anchor ->
+                val href = anchor.attr("href")
+                    .trim()
+                    .takeIf { it.isNotBlank() }
+                    ?: return@forEach
+
+                val url = absoluteUrl(href)
+
+                val title = anchor.attr("title")
+                    .trim()
+                    .ifBlank {
+                        anchor.closest("div[data-name=box-type6]")
+                            ?.selectFirst("figcaption span")
+                            ?.text()
+                            ?.trim()
+                            .orEmpty()
+                    }
+                    .ifBlank { return@forEach }
+
+                val scope =
+                    anchor.closest("div[data-name=box-type6]")
+                        ?: anchor
+
+                val poster = (
+                    anchor.selectFirst("img")
+                        ?: scope.selectFirst("img")
+                    )
+                    ?.let(::imageUrl)
+
+                val candidate = SeriesCard(
+                    title = title,
+                    url = url,
+                    poster = poster
+                )
+
+                val old = result[url]
+
+                result[url] = when {
+                    old == null -> candidate
+                    old.poster.isNullOrBlank() &&
+                        !candidate.poster.isNullOrBlank() -> candidate
+                    old.title.isBlank() &&
+                        candidate.title.isNotBlank() -> candidate
+                    else -> old
+                }
+            }
+
+        return result.values.toList()
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
@@ -71,7 +155,7 @@ class ShowTV : MainAPI() {
 
         val normalized = query.trim().lowercase()
 
-        return parseSeries(document)
+        return parseFullSeriesGrid(document)
             .filter {
                 normalized.isBlank() ||
                     it.title.lowercase().contains(normalized)
