@@ -3,47 +3,7 @@ name: Build PARS Plugins
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    paths:
-      - "FilmMakinesi/**"
-      - "FilmizleHell/**"
-      - "ShowTV/**"
-      - "Tizam/**"
-      - "DiziFilmizle/**"
-      - "IzleMac/**"
-      - "TEST/**"
-      - "TEST2/**"
-      - "ArdaSpor/**"
-      - "BeyazElma/**"
-      - "Crex/**"
-      - "InatBox/**"
-      - "InatTV/**"
-      - "InterSporTV/**"
-      - "MacKeyfi/**"
-      - "MahsunSports/**"
-      - "SelcukSports/**"
-      - "Taraftarium24/**"
-      - "TurkSporDestek/**"
-      - "ZbahisTV/**"
-      - "720Izle/**"
-      - "Ddizi/**"
-      - "TrDiziIzle/**"
-      - "common/**"
-      - "turkspor-core/**"
-      - "assets/**"
-      - "domains.json"
-      - "channel-rules.json"
-      - "plugin-meta.json"
-      - "notices.json"
-      - "repo.json"
-      - "build.gradle.kts"
-      - "settings.gradle.kts"
-      - "gradle.properties"
-      - "gradle/**"
-      - "gradlew"
-      - "gradlew.bat"
-      - ".github/workflows/build.yml"
+    branches: [main]
 
 permissions:
   contents: write
@@ -51,107 +11,55 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Make Gradle executable
-        run: chmod +x ./gradlew
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Build plugins and plugins.json
-        run: ./gradlew :FilmMakinesi:make :FilmizleHell:make :ShowTV:make :Tizam:make :DiziFilmizle:make :IzleMac:make :TEST:make :TEST2:make :ArdaSpor:make :BeyazElma:make :Crex:make :InatBox:make :InatTV:make :InterSporTV:make :MacKeyfi:make :MahsunSports:make :SelcukSports:make :Taraftarium24:make :TurkSporDestek:make :ZbahisTV:make :720Izle:make :Ddizi:make :TrDiziIzle:make makePluginsJson
-
-      - name: Verify generated files
+      - name: Show build configuration
         run: |
-          echo "=== GENERATED FILES ==="
-          find . -type f \( -name "*.cs3" -o -name "plugins.json" \) -print
+          echo "Gradle wrapper:"
+          grep distributionUrl gradle/wrapper/gradle-wrapper.properties
+          echo "CloudStream Gradle plugin:"
+          grep "recloudstream:gradle" build.gradle.kts
 
-          test -f FilmMakinesi/build/FilmMakinesi.cs3
-          test -f FilmizleHell/build/FilmizleHell.cs3
-          test -f ShowTV/build/ShowTV.cs3
-          test -f Tizam/build/Tizam.cs3
-          test -f DiziFilmizle/build/DiziFilmizle.cs3
-          test -f IzleMac/build/IzleMac.cs3
-          test -f TEST/build/TEST.cs3
-          test -f TEST2/build/TEST2.cs3
-          test -f ArdaSpor/build/ArdaSpor.cs3
-          test -f BeyazElma/build/BeyazElma.cs3
-          test -f Crex/build/Crex.cs3
-          test -f InatBox/build/InatBox.cs3
-          test -f InatTV/build/InatTV.cs3
-          test -f InterSporTV/build/InterSporTV.cs3
-          test -f MacKeyfi/build/MacKeyfi.cs3
-          test -f MahsunSports/build/MahsunSports.cs3
-          test -f SelcukSports/build/SelcukSports.cs3
-          test -f Taraftarium24/build/Taraftarium24.cs3
-          test -f TurkSporDestek/build/TurkSporDestek.cs3
-          test -f ZbahisTV/build/ZbahisTV.cs3
-          test -f 720Izle/build/720Izle.cs3
-          test -f Ddizi/build/Ddizi.cs3
-          test -f TrDiziIzle/build/TrDiziIzle.cs3
+      - name: Build all plugins
+        run: |
+          chmod +x ./gradlew
+          ./gradlew make makePluginsJson
+
+      - name: Verify generated repository
+        run: |
           test -f build/plugins.json
+          COUNT=$(find . -type f -name '*.cs3' | wc -l)
+          echo "Generated CS3 count: $COUNT"
+          test "$COUNT" -gt 0
 
-      - name: Prepare builds branch files
+      - name: Prepare builds branch
         run: |
           rm -rf /tmp/pars-builds
           mkdir -p /tmp/pars-builds
-
-          cp FilmMakinesi/build/FilmMakinesi.cs3 /tmp/pars-builds/FilmMakinesi.cs3
-          cp FilmizleHell/build/FilmizleHell.cs3 /tmp/pars-builds/FilmizleHell.cs3
-          cp ShowTV/build/ShowTV.cs3 /tmp/pars-builds/ShowTV.cs3
-          cp Tizam/build/Tizam.cs3 /tmp/pars-builds/Tizam.cs3
-          cp DiziFilmizle/build/DiziFilmizle.cs3 /tmp/pars-builds/DiziFilmizle.cs3
-          cp IzleMac/build/IzleMac.cs3 /tmp/pars-builds/IzleMac.cs3
-          cp TEST/build/TEST.cs3 /tmp/pars-builds/TEST.cs3
-          cp TEST2/build/TEST2.cs3 /tmp/pars-builds/TEST2.cs3
-          cp ArdaSpor/build/ArdaSpor.cs3 /tmp/pars-builds/ArdaSpor.cs3
-          cp BeyazElma/build/BeyazElma.cs3 /tmp/pars-builds/BeyazElma.cs3
-          cp Crex/build/Crex.cs3 /tmp/pars-builds/Crex.cs3
-          cp InatBox/build/InatBox.cs3 /tmp/pars-builds/InatBox.cs3
-          cp InatTV/build/InatTV.cs3 /tmp/pars-builds/InatTV.cs3
-          cp InterSporTV/build/InterSporTV.cs3 /tmp/pars-builds/InterSporTV.cs3
-          cp MacKeyfi/build/MacKeyfi.cs3 /tmp/pars-builds/MacKeyfi.cs3
-          cp MahsunSports/build/MahsunSports.cs3 /tmp/pars-builds/MahsunSports.cs3
-          cp SelcukSports/build/SelcukSports.cs3 /tmp/pars-builds/SelcukSports.cs3
-          cp Taraftarium24/build/Taraftarium24.cs3 /tmp/pars-builds/Taraftarium24.cs3
-          cp TurkSporDestek/build/TurkSporDestek.cs3 /tmp/pars-builds/TurkSporDestek.cs3
-          cp ZbahisTV/build/ZbahisTV.cs3 /tmp/pars-builds/ZbahisTV.cs3
-          cp 720Izle/build/720Izle.cs3 /tmp/pars-builds/720Izle.cs3
-          cp Ddizi/build/Ddizi.cs3 /tmp/pars-builds/Ddizi.cs3
-          cp TrDiziIzle/build/TrDiziIzle.cs3 /tmp/pars-builds/TrDiziIzle.cs3
           cp build/plugins.json /tmp/pars-builds/plugins.json
-          cp plugin-meta.json /tmp/pars-builds/plugin-meta.json
-          cp notices.json /tmp/pars-builds/notices.json
-
-          echo "=== PUBLISH CONTENT ==="
+          cp repo.json /tmp/pars-builds/repo.json
+          [ -f plugin-meta.json ] && cp plugin-meta.json /tmp/pars-builds/plugin-meta.json || true
+          [ -f notices.json ] && cp notices.json /tmp/pars-builds/notices.json || true
+          find . -type f -name '*.cs3' -exec cp {} /tmp/pars-builds/ \;
           ls -lah /tmp/pars-builds
 
-      - name: Publish to builds branch
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git checkout --orphan builds-publish
-          git rm -rf . || true
-          git clean -fdx
-
-          cp -a /tmp/pars-builds/. .
-
-          git add FilmMakinesi.cs3 FilmizleHell.cs3 ShowTV.cs3 Tizam.cs3 DiziFilmizle.cs3 IzleMac.cs3 TEST.cs3 TEST2.cs3 ArdaSpor.cs3 BeyazElma.cs3 Crex.cs3 InatBox.cs3 InatTV.cs3 InterSporTV.cs3 MacKeyfi.cs3 MahsunSports.cs3 SelcukSports.cs3 Taraftarium24.cs3 TurkSporDestek.cs3 ZbahisTV.cs3 720Izle.cs3 Ddizi.cs3 TrDiziIzle.cs3 plugins.json plugin-meta.json notices.json
-          SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
-          git commit -m "Build plugins ${SHORT_SHA}"
-
-          git push --force \
-            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
-            HEAD:builds
+      - name: Publish builds branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: builds
+          publish_dir: /tmp/pars-builds
+          force_orphan: true
