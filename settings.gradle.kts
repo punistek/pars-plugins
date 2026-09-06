@@ -23,8 +23,16 @@ dependencyResolutionManagement {
 rootProject.name = "PARS-Plugins"
 
 // Any top-level folder with build.gradle.kts becomes a module automatically.
-// This keeps the repo maintainable when new CloudStream providers are added.
+// Template/demo modules are deliberately excluded from the production repository.
+val excludedModules = setOf(
+    "ExampleProvider"
+)
+
 rootDir.listFiles()
-    ?.filter { it.isDirectory && File(it, "build.gradle.kts").exists() }
+    ?.filter {
+        it.isDirectory &&
+            File(it, "build.gradle.kts").exists() &&
+            it.name !in excludedModules
+    }
     ?.sortedBy { it.name.lowercase() }
     ?.forEach { include(":${it.name}") }

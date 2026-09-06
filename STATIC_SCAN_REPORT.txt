@@ -1,0 +1,74 @@
+PARS PLUGINS - STATIC CLEANUP REPORT
+============================================================
+
+Removed:
+- ExampleProvider: template/demo module; real GitHub build failed on its BuildConfig references.
+- gradle/gradle-daemon-jvm.properties: forced Oracle Java 23 while Actions uses Java 17.
+
+Kept intentionally:
+- TEST and TEST2: these existed in the user's original build command, so they were NOT treated as accidental template modules.
+- TurkSporDestek: support-only extension; kept because it is a valid CloudStream plugin even though it does not register a MainAPI.
+
+Production module scan:
+
+- 720Izle: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- AltiYuzAltmisAltiFilmIzle: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- AnimeciX: kt=4, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- ArdaSpor: kt=6, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- AsyaAnimeleri: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- BelgeselX: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- BeyazElma: kt=1, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- CanliTV: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- CizgiMax: kt=7, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- Crex: kt=6, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- Ddizi: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- DiziBox: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- DiziFilmizle: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- DiziKorea: kt=5, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- Dizilla: kt=5, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- DiziMom: kt=7, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- DiziPal: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- DiziYou: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- FilmizleHell: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- FilmMakinesi: kt=4, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- FilmModu: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- FullHDFilm: kt=4, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- FullHDFilmizlesene: kt=8, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- HDFilmCehennemi: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- InatBox: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- InatTV: kt=6, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- InternetArchiveProvider: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- InterSporTV: kt=1, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- IPTVOrgTR: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- IzleMac: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- JetFilmizle: kt=4, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- KultFilmler: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- MacKeyfi: kt=1, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- MahsunSports: kt=6, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- RareFilmm: kt=4, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- RecTV: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- SelcukSports: kt=6, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- SetFilmIzle: kt=4, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- ShowTV: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- SinemaCX: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- Sinewix: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- Taraftarium24: kt=6, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- TEST: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- TEST2: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- Tizam: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- TLCtr: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- TRanimaci: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- TRasyalog: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- TrDiziIzle: kt=3, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- TurkAnime: kt=2, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+- TurkSporDestek: kt=1, pluginAnnotation=yes, registerMainAPI=no, flags=OK
+- ZbahisTV: kt=1, pluginAnnotation=yes, registerMainAPI=yes, flags=OK
+
+Scanned production modules: 52
+Modules with review flags: 0
+
+Root checks:
+- ExampleProvider exists: False
+- daemon JVM criteria exists: False
+- Gradle wrapper: https\://services.gradle.org/distributions/gradle-8.12-bin.zip
+- settings excludes ExampleProvider: True

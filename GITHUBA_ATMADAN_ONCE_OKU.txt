@@ -1,0 +1,27 @@
+PARS Plugins - build fix
+
+DÜZELTİLEN HATA:
+com.github.recloudstream:gradle:master-SNAPSHOT
+yerine CloudStream'in güncel resmi extension yapısındaki:
+com.github.recloudstream:gradle:-SNAPSHOT
+kullanıldı.
+
+Ayrıca Gradle wrapper 9.4.1 -> 8.12 yapıldı.
+Bu, CloudStream extension reposunun kullandığı yapı ile hizalanır.
+
+ÇOK ÖNEMLİ:
+GitHub'daki mevcut repo içeriğinin ÜSTÜNE sadece bazı dosyaları atma.
+Özellikle eski .github/workflows dosyası kalırsa Actions yine eski,
+tek tek modül yazılmış komutu çalıştırır.
+
+GitHub'da şu dosyaların kesinlikle bu ZIP'teki sürüm olduğuna bak:
+- build.gradle.kts
+- gradle/wrapper/gradle-wrapper.properties
+- .github/workflows/build.yml
+- settings.gradle.kts
+
+Doğru workflow komutu:
+./gradlew make makePluginsJson
+
+Eski şu tip uzun komut artık kullanılmamalı:
+./gradlew :FilmMakinesi:make :ArdaSpor:make ... makePluginsJson
