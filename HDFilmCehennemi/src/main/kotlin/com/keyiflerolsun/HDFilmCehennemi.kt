@@ -71,50 +71,100 @@ class HDFilmCehennemi : MainAPI() {
     }
 
     override val mainPage = mainPageOf(
-        "${mainUrl}/load/page/sayfano/home/"                                       to "Yeni Eklenen Filmler",
-        //"${mainUrl}/load/page/sayfano/categories/nette-ilk-filmler/"               to "Nette İlk Filmler",
-        "${mainUrl}/load/page/sayfano/home-series/"                                to "Yeni Eklenen Diziler",
-        "${mainUrl}/load/page/sayfano/categories/tavsiye-filmler-izle3/"           to "Tavsiye Filmler",
-        "${mainUrl}/load/page/sayfano/imdb7/"                                      to "IMDB 7+ Filmler",
-        "${mainUrl}/load/page/sayfano/mostCommented/"                              to "En Çok Yorumlananlar",
-        "${mainUrl}/load/page/sayfano/mostLiked/"                                  to "En Çok Beğenilenler",
-        //"${mainUrl}/load/page/sayfano/genres/aile-filmleri-izleyin-6/"             to "Aile Filmleri",
-        //"${mainUrl}/load/page/sayfano/genres/aksiyon-filmleri-izleyin-5/"          to "Aksiyon Filmleri",
-        //"${mainUrl}/load/page/sayfano/genres/animasyon-filmlerini-izleyin-5/"      to "Animasyon Filmleri",
-        //"${mainUrl}/load/page/sayfano/genres/belgesel-filmlerini-izle-1/"          to "Belgesel Filmleri",
-        //"${mainUrl}/load/page/sayfano/genres/bilim-kurgu-filmlerini-izleyin-3/"    to "Bilim Kurgu Filmleri",
-        //"${mainUrl}/load/page/sayfano/genres/komedi-filmlerini-izleyin-1/"         to "Komedi Filmleri",
-        //"${mainUrl}/load/page/sayfano/genres/korku-filmlerini-izle-4/"             to "Korku Filmleri",
-        //"${mainUrl}/load/page/sayfano/genres/romantik-filmleri-izle-2/"            to "Romantik Filmleri"
+        "${mainUrl}/load/page/sayfano/home/"                         to "Yeni Eklenen Filmler",
+        "${mainUrl}/load/page/sayfano/home-series/"                  to "Yeni Eklenen Diziler",
+
+        // Kullanıcının verdiği gerçek kategori sayfaları.
+        // Bunları doğrudan kullanıyoruz; böylece anasayfadaki kısa carousel ile
+        // sınırlı kalmayıp kategori sayfasındaki gerçek içerik listesi geliyor.
+        "${mainUrl}/category/tavsiye-filmler-izle3/"                  to "Tavsiye Filmler",
+        "${mainUrl}/imdb-7-puan-uzeri-filmler-2/"                    to "IMDB 7+ Filmler",
+        "${mainUrl}/load/page/sayfano/mostCommented/"                to "En Çok Yorumlananlar",
+        "${mainUrl}/en-cok-begenilen-filmleri-izle-4/"               to "En Çok Beğenilenler",
+        "${mainUrl}/category/nette-ilk-filmler-1/"                   to "Nette İlk Filmler",
+        "${mainUrl}/yabancidiziizle-5/"                              to "Yabancı Diziler"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-        val url = request.data.replace("sayfano", page.toString())
+
         val headers = mapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
             "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-            "Accept" to "*/*", "X-Requested-With" to "fetch"
+            "Accept" to "*/*",
+            "X-Requested-With" to "fetch"
         )
-        val doc = app.get(url, headers = headers, referer = mainUrl, interceptor = interceptor)
-        val home: List<SearchResponse>?
-        if (!doc.toString().contains("Sayfa Bulunamadı")) {
-            val aa: HDFC = objectMapper.readValue(doc.toString())
-            val document = Jsoup.parse(aa.html)
 
-            home = document.select("a").mapNotNull { it.toSearchResult() }
+        /*
+         * İki tip ana sayfa kaynağı destekleniyor:
+         *
+         * 1) /load/page/sayfano/...  -> sitenin JSON/AJAX cevabı
+         * 2) gerçek kategori URL'si  -> normal HTML sayfası
+         *
+         * Böylece kategori URL'lerini tahmini bir endpoint'e çevirmiyoruz.
+         */
+        if (!request.data.contains("/load/page/")) {
+            // Şimdilik kategori ana sayfasını bir kez getiriyoruz.
+            // "Tümünü Gör" ekranında gerçek sayfalama ayrıca bağlanacak.
+            if (page > 1) {
+                return newHomePageResponse(request.name, emptyList())
+            }
+
+            val response = app.get(
+                request.data,
+                headers = headers,
+                referer = mainUrl,
+                interceptor = interceptor
+            )
+
+            if (!response.isSuccessful || response.text.contains("Sayfa Bulunamadı")) {
+                return newHomePageResponse(request.name, emptyList())
+            }
+
+            val document = response.document
+            val home = document
+                .select("a.poster, a[title]")
+                .mapNotNull { it.toSearchResult() }
+                .distinctBy { it.url }
+
             return newHomePageResponse(request.name, home)
         }
-        return newHomePageResponse(request.name, emptyList())
+
+        val url = request.data.replace("sayfano", page.toString())
+        val response = app.get(
+            url,
+            headers = headers,
+            referer = mainUrl,
+            interceptor = interceptor
+        )
+
+        if (!response.isSuccessful || response.text.contains("Sayfa Bulunamadı")) {
+            return newHomePageResponse(request.name, emptyList())
+        }
+
+        val aa: HDFC = objectMapper.readValue(response.text)
+        val document = Jsoup.parse(aa.html)
+        val home = document
+            .select("a")
+            .mapNotNull { it.toSearchResult() }
+            .distinctBy { it.url }
+
+        return newHomePageResponse(request.name, home)
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
         val title = this.attr("title")
         val href = fixUrlNull(this.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("data-src"))
+        val image = this.selectFirst("img")
+        val posterUrl = fixUrlNull(
+            image?.attr("data-src")?.takeIf { it.isNotBlank() }
+                ?: image?.attr("src")
+        )
 
-        return newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
+        return newMovieSearchResponse(title, href, TvType.Movie) {
+            this.posterUrl = posterUrl
+        }
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
