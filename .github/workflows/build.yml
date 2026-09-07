@@ -31,7 +31,7 @@ jobs:
           echo "Gradle wrapper:"
           grep distributionUrl gradle/wrapper/gradle-wrapper.properties
           echo "CloudStream Gradle plugin:"
-          grep "recloudstream:gradle" build.gradle.kts
+          grep -E "recloudstream:gradle|com\.lagradost\.cloudstream3:gradle" build.gradle.kts || true
 
       - name: Install CloudStream Gradle plugin locally
         shell: bash
