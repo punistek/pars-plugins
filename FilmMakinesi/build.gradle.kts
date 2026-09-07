@@ -1,14 +1,9 @@
-version = 2
+version = 3
 
 cloudstream {
     language = "tr"
-    description = "FilmMakinesi - CloseLoad/Rapid player ve altyazı desteği"
-    authors = listOf("PARS")
-
+    description = "Site Repo Builder tarafindan uretilen provider taslagi"
+    authors = listOf("SiteRepoBuilder")
     status = 1
-    tvTypes = listOf(
-        "Movie"
-    )
-
-    iconUrl = "https://filmmakinesi.to/favicon.ico"
+    tvTypes = listOf("Movie", "TvSeries")
 }
