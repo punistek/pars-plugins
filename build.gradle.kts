@@ -1,4 +1,4 @@
-import com.android.build.gradle.BaseExtension
+import com.android.build.api.dsl.LibraryExtension
 import com.lagradost.cloudstream3.gradle.CloudstreamExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
@@ -11,10 +11,14 @@ buildscript {
     }
 
     dependencies {
-        // Resmi recloudstream/extensions ile aynı sürümler.
         classpath("com.android.tools.build:gradle:8.7.3")
-        classpath("com.github.recloudstream:gradle:-SNAPSHOT")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0")
+
+        // Kekik-cloudstream'ın kullandığı çalışan koordinat.
+        // "-SNAPSHOT" sende JitPack metadata'sında bozuk commit'e çözülüyordu.
+        classpath("com.github.recloudstream:gradle:master-SNAPSHOT")
+
+        // Kekik tarafındaki uyumlu sürüm.
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0")
     }
 }
 
@@ -29,8 +33,8 @@ allprojects {
 fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) =
     extensions.getByName<CloudstreamExtension>("cloudstream").configuration()
 
-fun Project.android(configuration: BaseExtension.() -> Unit) =
-    extensions.getByName<BaseExtension>("android").configuration()
+fun Project.android(configuration: LibraryExtension.() -> Unit) =
+    extensions.configure("android", configuration)
 
 val turkSporModules = setOf(
     "ArdaSpor", "BeyazElma", "Crex", "InatBox", "InatTV", "InterSporTV",
@@ -60,21 +64,20 @@ subprojects {
             "com.pars.plugins"
         }
 
+        compileSdk = 35
+
         defaultConfig {
             minSdk = 21
-            compileSdkVersion(35)
             targetSdk = 35
         }
 
         if (name in turkSporModules) {
-            sourceSets.getByName("main").java.srcDir(
-                rootProject.file("turkspor-core/common/src/main/kotlin")
-            )
+            sourceSets.getByName("main").kotlin.directories +=
+                rootProject.file("turkspor-core/common/src/main/kotlin").path
 
             if (name in turkSporSharedModules) {
-                sourceSets.getByName("main").java.srcDir(
-                    rootProject.file("turkspor-core/shared/src/main/kotlin")
-                )
+                sourceSets.getByName("main").kotlin.directories +=
+                    rootProject.file("turkspor-core/shared/src/main/kotlin").path
             }
         }
 
@@ -83,7 +86,7 @@ subprojects {
             targetCompatibility = JavaVersion.VERSION_1_8
         }
 
-        tasks.withType<KotlinJvmCompile> {
+        tasks.withType<KotlinJvmCompile>().configureEach {
             compilerOptions {
                 jvmTarget.set(JvmTarget.JVM_1_8)
                 freeCompilerArgs.addAll(
@@ -97,14 +100,10 @@ subprojects {
     }
 
     dependencies {
-        /*
-         * Resmi CloudStream extensions deposundaki bağımlılık biçimi.
-         * Eski `cloudstream("com.lagradost:cloudstream3:pre-release")`
-         * yerine host library doğrudan compile dependency olarak kullanılıyor.
-         */
-        val implementation by configurations
+        val cloudstream by configurations
+        cloudstream("com.lagradost:cloudstream3:pre-release")
 
-        implementation("com.github.recloudstream.cloudstream:library:-SNAPSHOT")
+        val implementation by configurations
         implementation(kotlin("stdlib"))
 
         if (name in turkSporModules) {
