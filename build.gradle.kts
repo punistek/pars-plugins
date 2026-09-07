@@ -7,13 +7,37 @@ buildscript {
     repositories {
         google()
         mavenCentral()
-        maven("https://jitpack.io")
+
+        // CloudStream Gradle plugin ve NiceHttp JitPack'ten geliyor.
+        // JitPack en sonda kalsın.
+        maven("https://jitpack.io") {
+            content {
+                includeGroup("com.github.recloudstream")
+                includeGroup("com.github.Blatzar")
+            }
+        }
     }
 
     dependencies {
+        // CloudStream resmi extensions deposundaki AGP sürümü.
         classpath("com.android.tools.build:gradle:8.7.3")
-        // CloudStream resmi extension reposu ile aynı Gradle plugin koordinatı.
-        classpath("com.github.recloudstream:gradle:-SNAPSHOT")
+
+        /*
+         * ÖNEMLİ:
+         * -SNAPSHOT yerine sabit commit kullanıyoruz.
+         *
+         * Senin GitHub Actions logunda -SNAPSHOT çözümlemesinin işaret ettiği
+         * commit 32895aedb6 idi; dynamic snapshot metadata/pom kırıldığı için
+         * build daha Kotlin aşamasına gelmeden düşüyordu.
+         *
+         * Sabit commit:
+         *  - metadata değişiminden etkilenmez
+         *  - aynı build her seferinde aynı Gradle pluginini kullanır
+         *  - JitPack snapshot cache tutarsızlığını bypass eder
+         */
+        classpath("com.github.recloudstream:gradle:32895aedb6")
+
+        // Resmi extensions deposuyla uyumlu.
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0")
     }
 }
@@ -22,7 +46,15 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven("https://jitpack.io")
+
+        maven("https://jitpack.io") {
+            content {
+                includeGroup("com.github.recloudstream")
+                includeGroup("com.github.recloudstream.cloudstream")
+                includeGroup("com.github.Blatzar")
+                includeGroup("com.github.teamnewpipe")
+            }
+        }
     }
 }
 
@@ -33,13 +65,26 @@ fun Project.android(configuration: LibraryExtension.() -> Unit) =
     extensions.configure("android", configuration)
 
 val turkSporModules = setOf(
-    "ArdaSpor", "BeyazElma", "Crex", "InatBox", "InatTV", "InterSporTV",
-    "MacKeyfi", "MahsunSports", "SelcukSports", "Taraftarium24",
-    "TurkSporDestek", "ZbahisTV"
+    "ArdaSpor",
+    "BeyazElma",
+    "Crex",
+    "InatBox",
+    "InatTV",
+    "InterSporTV",
+    "MacKeyfi",
+    "MahsunSports",
+    "SelcukSports",
+    "Taraftarium24",
+    "TurkSporDestek",
+    "ZbahisTV"
 )
 
 val turkSporSharedModules = setOf(
-    "MacKeyfi", "ZbahisTV", "InterSporTV", "BeyazElma", "InatBox"
+    "MacKeyfi",
+    "ZbahisTV",
+    "InterSporTV",
+    "BeyazElma",
+    "InatBox"
 )
 
 subprojects {
@@ -82,9 +127,10 @@ subprojects {
             targetCompatibility = JavaVersion.VERSION_1_8
         }
 
-        tasks.withType<KotlinJvmCompile> {
+        tasks.withType<KotlinJvmCompile>().configureEach {
             compilerOptions {
                 jvmTarget.set(JvmTarget.JVM_1_8)
+
                 freeCompilerArgs.addAll(
                     "-Xno-call-assertions",
                     "-Xno-param-assertions",
@@ -100,6 +146,7 @@ subprojects {
         cloudstream("com.lagradost:cloudstream3:pre-release")
 
         val implementation by configurations
+
         implementation(kotlin("stdlib"))
 
         if (name in turkSporModules) {
@@ -107,6 +154,7 @@ subprojects {
             implementation("org.jsoup:jsoup:1.22.2")
             implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.1")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+
             add("compileOnly", "com.google.android.material:material:1.12.0")
             add("testImplementation", "junit:junit:4.13.2")
         } else {
