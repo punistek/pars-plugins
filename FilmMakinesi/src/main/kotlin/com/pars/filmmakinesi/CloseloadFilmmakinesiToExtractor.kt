@@ -1,6 +1,6 @@
 package com.pars.filmmakinesi
 
-import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
 class CloseloadFilmmakinesiToExtractor : ExtractorApi() {
@@ -121,15 +121,20 @@ class CloseloadFilmmakinesiToExtractor : ExtractorApi() {
 
             when {
                 isHls(stream) -> {
-                    generateM3u8(
-                        name,
-                        stream,
-                        url,
-                        headers = mapOf(
-                            "Referer" to url,
-                            "Origin" to mainUrl
-                        )
-                    ).forEach(callback)
+                    callback(
+                        newExtractorLink(
+                            source = name,
+                            name = name,
+                            url = stream,
+                            type = ExtractorLinkType.M3U8
+                        ) {
+                            quality = Qualities.Unknown.value
+                            headers = mapOf(
+                                "Referer" to url,
+                                "Origin" to mainUrl
+                            )
+                        }
+                    )
                 }
                 stream.contains(".mpd", true) -> {
                     callback(newExtractorLink(name, name, stream, INFER_TYPE) {

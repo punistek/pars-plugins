@@ -84,9 +84,14 @@ class FilmmakinesiProvider : MainAPI() {
         embeds.forEach { embed ->
             try {
                 attempted = true
-                loadExtractor(embed, data, subtitleCallback, callback)
+                loadExtractor(
+                    embed,
+                    data,
+                    subtitleCallback,
+                    callback
+                )
             } catch (_: Throwable) {
-                // One mirror failing must not prevent the next mirror.
+                // Bir kaynak hata verirse diğer alternatifi dene.
             }
         }
         return attempted
