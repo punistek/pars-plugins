@@ -347,67 +347,45 @@ class FilmMakinesi : MainAPI() {
             referer = mainUrl
         ).document
 
-        /*
-         * Motor City HTML'inde doğrulanan yapı:
-         *
-         * <div class="video-parts">
-         *   <a data-video_url="https://closeload...">Altyazılı Close</a>
-         *   <a data-video_url="https://rapid...">Altyazılı Rapid</a>
-         * </div>
-         */
         val embeds = LinkedHashSet<String>()
 
+        // FilmMakinesi alternatif player butonları ve olası veri alanları.
         document.select(
-            ".video-parts a[data-video_url]"
+            ".video-parts a[data-video_url], " +
+                "a[data-video_url], [data-video-url], " +
+                "iframe[src], iframe[data-src]"
         ).forEach { element ->
-
-            element.attr("data-video_url")
+            val raw = element.attr("data-video_url")
+                .ifBlank { element.attr("data-video-url") }
+                .ifBlank { element.attr("src") }
+                .ifBlank { element.attr("data-src") }
                 .trim()
-                .takeIf { it.isNotBlank() }
-                ?.let(::fixUrl)
-                ?.let(embeds::add)
-        }
-
-        /*
-         * Varsayılan iframe'i de ekle.
-         * FilmMakinesi HTML'inde iframe URL'si data-src içinde bulunabiliyor.
-         */
-        document.select(
-            ".after-player iframe, " +
-                ".player--area iframe, " +
-                "#player-section iframe"
-        ).forEach { iframe ->
-
-            val iframeUrl =
-                iframe.attr("data-src")
-                    .ifBlank {
-                        iframe.attr("src")
-                    }
-                    .trim()
 
             if (
-                iframeUrl.isNotBlank() &&
-                iframeUrl != "about:blank"
+                raw.isNotBlank() &&
+                raw != "about:blank" &&
+                !raw.contains("youtube.com", ignoreCase = true)
             ) {
-                embeds.add(fixUrl(iframeUrl))
+                embeds.add(fixUrl(raw))
             }
         }
 
-        if (embeds.isEmpty()) {
-            return false
-        }
+        if (embeds.isEmpty()) return false
 
         var found = false
 
-        embeds.forEach { embedUrl ->
-
-            loadExtractor(
-                embedUrl,
-                data,
-                subtitleCallback
-            ) { link ->
-                found = true
-                callback(link)
+        for (embedUrl in embeds) {
+            try {
+                loadExtractor(
+                    embedUrl,
+                    data,
+                    subtitleCallback
+                ) { link ->
+                    found = true
+                    callback(link)
+                }
+            } catch (_: Throwable) {
+                // Bir alternatif bozuksa diğer player denenmeye devam etsin.
             }
         }
 

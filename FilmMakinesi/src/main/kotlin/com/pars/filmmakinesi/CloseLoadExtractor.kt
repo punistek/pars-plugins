@@ -14,59 +14,45 @@ class CloseLoadExtractor : ExtractorApi() {
 
     override suspend fun getUrl(
         url: String,
-        referer: String?
-    ): List<ExtractorLink>? {
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
         val pageReferer = referer ?: "https://filmmakinesi.to/"
 
-        val html = try {
+        val response = try {
             app.get(
                 url,
                 referer = pageReferer,
                 headers = mapOf(
                     "User-Agent" to USER_AGENT,
-                    "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                    "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7"
                 )
-            ).text
+            )
         } catch (e: Throwable) {
             Log.e(TAG, "FETCH_ERROR url=$url error=$e")
-            return null
+            return
         }
 
-        return try {
-            val sourceVariable = findSourceVariable(html)
-                ?: run {
-                    Log.e(TAG, "SOURCE_VARIABLE_NOT_FOUND")
-                    return null
-                }
+        val html = response.text
+            .replace("\\u0026", "&")
+            .replace("\\/", "/")
+            .replace("&amp;", "&")
 
-            val assignment = findDecoderAssignment(html, sourceVariable)
-                ?: run {
-                    Log.e(TAG, "DECODER_ASSIGNMENT_NOT_FOUND variable=$sourceVariable")
-                    return null
-                }
+        emitSubtitles(html, subtitleCallback)
 
-            val functionBody = extractFunctionBody(html, assignment.functionName)
-                ?: run {
-                    Log.e(TAG, "DECODER_FUNCTION_NOT_FOUND name=${assignment.functionName}")
-                    return null
-                }
+        val links = LinkedHashSet<String>()
 
+        // 1) Sitenin mevcut obfuscation decoder mantığını önce dene.
+        runCatching {
+            val sourceVariable = findSourceVariable(html) ?: return@runCatching
+            val assignment = findDecoderAssignment(html, sourceVariable) ?: return@runCatching
+            val functionBody = extractFunctionBody(html, assignment.functionName) ?: return@runCatching
             val operations = parseOperations(functionBody)
-
-            Log.i(
-                TAG,
-                "DECODER_FOUND variable=$sourceVariable " +
-                    "function=${assignment.functionName} parts=${assignment.parts.size} " +
-                    "ops=${operations.joinToString(" -> ")}"
-            )
-
-            if (assignment.parts.isEmpty() || operations.isEmpty()) {
-                Log.e(TAG, "DECODER_EMPTY parts=${assignment.parts.size} ops=${operations.size}")
-                return null
-            }
+            if (assignment.parts.isEmpty() || operations.isEmpty()) return@runCatching
 
             var result = assignment.parts.joinToString("")
-
             for (operation in operations) {
                 result = when (operation) {
                     is DecodeOperation.Base64Decode -> decodeBase64(result)
@@ -80,49 +66,116 @@ class CloseLoadExtractor : ExtractorApi() {
                 }
             }
 
-            val streamUrl = normalizeDecodedUrl(result)
+            normalizeDecodedUrl(result)
+                .takeIf { it.startsWith("http://") || it.startsWith("https://") }
+                ?.let(links::add)
+        }
 
-            Log.i(TAG, "DECODE_RESULT url=$streamUrl")
+        // 2) JSON-LD VideoObject içindeki contentUrl. Analizde CloseLoad bunu veriyor.
+        Regex(
+            """(?is)[\"']contentUrl[\"']\s*:\s*[\"']([^\"']+)[\"']"""
+        ).findAll(html).forEach { links += cleanUrl(it.groupValues[1]) }
 
-            if (!streamUrl.startsWith("http://") && !streamUrl.startsWith("https://")) {
-                Log.e(TAG, "DECODE_RESULT_INVALID value=${streamUrl.take(500)}")
-                return null
+        // 3) Açık medya URL'leri; HLS bazı sayfalarda .m3u8 yerine /master.txt ile bitiyor.
+        Regex(
+            """https?://[^\"'\\s<>]+?(?:\.m3u8|\.mpd|\.mp4|/master\.txt)(?:\?[^\"'\\s<>]*)?""",
+            RegexOption.IGNORE_CASE
+        ).findAll(html).forEach { links += cleanUrl(it.value) }
+
+        // 4) JWPlayer file/src/source/url alanları.
+        Regex(
+            """(?is)(?:file|src|source|url)\s*[\"']?\s*[:=]\s*[\"']([^\"']+)[\"']"""
+        ).findAll(html).forEach { match ->
+            val value = cleanUrl(match.groupValues[1])
+            if (looksLikeMedia(value)) links += value
+        }
+
+        // 5) DOM video/source/audio.
+        response.document.select("video[src], source[src], audio[src]").forEach { element ->
+            val value = cleanUrl(element.attr("src"))
+            if (looksLikeMedia(value)) links += absoluteUrl(value)
+        }
+
+        val emitted = LinkedHashSet<String>()
+        links.forEach { raw ->
+            val stream = absoluteUrl(raw)
+            if (!emitted.add(stream)) return@forEach
+
+            val type = when {
+                isHls(stream) -> ExtractorLinkType.M3U8
+                stream.contains(".mpd", true) -> ExtractorLinkType.DASH
+                else -> ExtractorLinkType.VIDEO
             }
 
-            val lower = streamUrl.lowercase()
-            val looksLikeHls =
-                ".m3u8" in lower ||
-                "master.txt" in lower ||
-                "playlist.txt" in lower ||
-                "index.txt" in lower ||
-                "/hls/" in lower
-
-            if (!looksLikeHls) {
-                Log.w(TAG, "DECODE_RESULT_UNUSUAL url=$streamUrl")
-            }
-
-            val streamHeaders = mapOf(
-                "User-Agent" to USER_AGENT,
-                "Referer" to url,
-                "Origin" to mainUrl,
-                "Accept" to "*/*"
-            )
-
-            listOf(
+            callback(
                 newExtractorLink(
                     source = name,
-                    name = name,
-                    url = streamUrl,
-                    type = ExtractorLinkType.M3U8
+                    name = if (isHls(stream)) "$name HLS" else name,
+                    url = stream,
+                    type = type
                 ) {
-                    headers = streamHeaders
-                    quality = Qualities.Unknown.value
+                    this.referer = url
+                    this.quality = Qualities.Unknown.value
+                    this.headers = mapOf(
+                        "User-Agent" to USER_AGENT,
+                        "Referer" to url,
+                        "Origin" to mainUrl,
+                        "Accept" to "*/*"
+                    )
                 }
             )
-        } catch (e: Throwable) {
-            Log.e(TAG, "DECODE_ERROR url=$url error=$e", e)
-            null
         }
+    }
+
+    private fun emitSubtitles(
+        html: String,
+        subtitleCallback: (SubtitleFile) -> Unit
+    ) {
+        val seen = LinkedHashSet<String>()
+
+        Regex(
+            """(?is)\{[^{}]*[\"']file[\"']\s*:\s*[\"']([^\"']+\.(?:vtt|srt)[^\"']*)[\"'][^{}]*[\"']label[\"']\s*:\s*[\"']([^\"']+)[\"'][^{}]*\}"""
+        ).findAll(html).forEach { m ->
+            val subUrl = absoluteUrl(cleanUrl(m.groupValues[1]))
+            if (seen.add(subUrl)) subtitleCallback(SubtitleFile(m.groupValues[2], subUrl))
+        }
+
+        Regex(
+            """(?is)\{[^{}]*[\"']label[\"']\s*:\s*[\"']([^\"']+)[\"'][^{}]*[\"']file[\"']\s*:\s*[\"']([^\"']+\.(?:vtt|srt)[^\"']*)[\"'][^{}]*\}"""
+        ).findAll(html).forEach { m ->
+            val subUrl = absoluteUrl(cleanUrl(m.groupValues[2]))
+            if (seen.add(subUrl)) subtitleCallback(SubtitleFile(m.groupValues[1], subUrl))
+        }
+    }
+
+    private fun cleanUrl(value: String): String = value
+        .trim()
+        .replace("\\u0026", "&")
+        .replace("\\/", "/")
+        .replace("&amp;", "&")
+        .trim('"', '\'', ' ')
+
+    private fun absoluteUrl(raw: String): String {
+        val value = cleanUrl(raw)
+        return when {
+            value.startsWith("http://") || value.startsWith("https://") -> value
+            value.startsWith("//") -> "https:$value"
+            value.startsWith("/") -> "$mainUrl$value"
+            else -> "$mainUrl/$value"
+        }
+    }
+
+    private fun isHls(url: String): Boolean {
+        val lower = url.lowercase()
+        return lower.contains(".m3u8") ||
+            lower.contains("/master.txt") ||
+            lower.contains("/playlist.txt") ||
+            lower.contains("/hls/")
+    }
+
+    private fun looksLikeMedia(url: String): Boolean {
+        val lower = url.lowercase()
+        return isHls(lower) || lower.contains(".mp4") || lower.contains(".mpd")
     }
 
     /**

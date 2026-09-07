@@ -9,94 +9,123 @@ class FilmMakinesiRapidExtractor : ExtractorApi() {
     override val mainUrl = "https://rapid.filmmakinesi.to"
     override val requiresReferer = true
 
-    override suspend fun getUrl(url: String, referer: String?): List<ExtractorLink>? {
+    override suspend fun getUrl(
+        url: String,
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
         val pageReferer = referer ?: "https://filmmakinesi.to/"
-        val html = try {
-            app.get(url, referer = pageReferer, headers = mapOf("User-Agent" to USER_AGENT)).text
+        val response = try {
+            app.get(
+                url,
+                referer = pageReferer,
+                headers = mapOf(
+                    "User-Agent" to USER_AGENT,
+                    "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7"
+                )
+            )
         } catch (e: Throwable) {
             Log.e(TAG, "RAPID_FETCH_ERROR url=$url error=$e")
-            return null
+            return
         }
 
-        Log.i(TAG, "RAPID_HTML_FULL_LEN url=$url len=${html.length}")
-        val variables = findSourceVariables(html)
-        Log.i(TAG, "RAPID_SOURCE_VARIABLES count=${variables.size} values=$variables")
-        variables.forEach { logVariableDefinitions(html, it) }
-        logInlineScripts(html, variables)
+        val html = response.text
+            .replace("\\u0026", "&")
+            .replace("\\/", "/")
+            .replace("&amp;", "&")
 
-        val directCandidates = LinkedHashSet<String>()
-        Regex("""https?://[^\s\"'<>\\]+?\.m3u8[^\s\"'<>\\]*""", RegexOption.IGNORE_CASE)
-            .findAll(html).forEach { directCandidates += it.value.replace("\\/", "/").replace("\\", "") }
-        Log.i(TAG, "RAPID_DIRECT_CANDIDATES count=${directCandidates.size} values=$directCandidates")
-        return null
-    }
+        val links = LinkedHashSet<String>()
 
-    private fun findSourceVariables(html: String): LinkedHashSet<String> {
-        val vars = LinkedHashSet<String>()
-        Regex("""(?i)sources\s*:\s*\[\s*\{\s*file\s*:\s*([A-Za-z_$][A-Za-z0-9_$]*)""")
-            .findAll(html).forEach { vars += it.groupValues[1] }
-        Regex("""(?i)\bfile\s*:\s*([A-Za-z_$][A-Za-z0-9_$]*)""")
-            .findAll(html).forEach {
-                val v = it.groupValues[1]
-                if (v.startsWith("s_")) vars += v
-            }
-        return vars
-    }
+        Regex(
+            """https?://[^\"'\\s<>]+?(?:\.m3u8|\.mpd|\.mp4|/master\.txt)(?:\?[^\"'\\s<>]*)?""",
+            RegexOption.IGNORE_CASE
+        ).findAll(html).forEach { links += clean(it.value) }
 
-    private fun logVariableDefinitions(html: String, variable: String) {
-        Log.i(TAG, "VAR_TRACE_BEGIN variable=$variable htmlLen=${html.length}")
-        var pos = 0
-        var occurrence = 0
-        while (occurrence < 20) {
-            val idx = html.indexOf(variable, pos, ignoreCase = false)
-            if (idx < 0) break
-            val start = maxOf(0, idx - 500)
-            val end = minOf(html.length, idx + variable.length + 900)
-            val context = html.substring(start, end).replace("\r", " ").replace("\n", " ")
-            Log.i(TAG, "VAR_OCCURRENCE variable=$variable n=$occurrence idx=$idx context=$context")
-            occurrence++
-            pos = idx + variable.length
+        Regex(
+            """(?is)(?:file|src|source|url|contentUrl)\s*[\"']?\s*[:=]\s*[\"']([^\"']+)[\"']"""
+        ).findAll(html).forEach { m ->
+            val value = clean(m.groupValues[1])
+            if (looksLikeMedia(value)) links += value
         }
 
-        val escaped = Regex.escape(variable)
-        val patterns = listOf(
-            Regex("""(?is)\b(?:var|let|const)\s+$escaped\s*=\s*(.+?);"""),
-            Regex("""(?is)(?<![A-Za-z0-9_$])$escaped\s*=\s*(.+?);""")
-        )
-        var assignments = 0
-        patterns.forEachIndexed { p, rx ->
-            rx.findAll(html).forEach { m ->
-                val rhs = m.groupValues.getOrNull(1)?.trim().orEmpty()
-                Log.i(TAG, "VAR_ASSIGN variable=$variable pattern=$p rhs=${rhs.take(2500)}")
-                assignments++
+        if (html.contains("eval(function(p,a,c,k,e", ignoreCase = true)) {
+            runCatching {
+                val unpacked = getAndUnpack(html)
+                    .replace("\\u0026", "&")
+                    .replace("\\/", "/")
+                Regex(
+                    """https?://[^\"'\\s<>]+?(?:\.m3u8|\.mpd|\.mp4|/master\.txt)(?:\?[^\"'\\s<>]*)?""",
+                    RegexOption.IGNORE_CASE
+                ).findAll(unpacked).forEach { links += clean(it.value) }
             }
         }
 
-        listOf("atob(", "btoa(", "decodeURIComponent(", "String.fromCharCode", "eval(", "unescape(", "CryptoJS", "base64", "xor", "reverse(")
-            .forEach { keyword ->
-                var from = 0
-                var count = 0
-                while (count < 5) {
-                    val idx = html.indexOf(keyword, from, ignoreCase = true)
-                    if (idx < 0) break
-                    val start = maxOf(0, idx - 350)
-                    val end = minOf(html.length, idx + 900)
-                    val context = html.substring(start, end).replace("\r", " ").replace("\n", " ")
-                    Log.i(TAG, "DECODE_HINT variable=$variable keyword=$keyword context=$context")
-                    from = idx + keyword.length
-                    count++
+        response.document.select("video[src], source[src], audio[src]").forEach { e ->
+            val value = clean(e.attr("src"))
+            if (looksLikeMedia(value)) links += absoluteUrl(value)
+        }
+
+        val seenSubs = LinkedHashSet<String>()
+        Regex(
+            """https?://[^\"'\\s<>]+\.(?:vtt|srt)(?:\?[^\"'\\s<>]*)?""",
+            RegexOption.IGNORE_CASE
+        ).findAll(html).forEach { m ->
+            val sub = clean(m.value)
+            if (seenSubs.add(sub)) subtitleCallback(SubtitleFile("Altyazı", sub))
+        }
+
+        val emitted = LinkedHashSet<String>()
+        links.forEach { raw ->
+            val stream = absoluteUrl(raw)
+            if (!emitted.add(stream)) return@forEach
+            val isHls = isHls(stream)
+            val type = when {
+                isHls -> ExtractorLinkType.M3U8
+                stream.contains(".mpd", true) -> ExtractorLinkType.DASH
+                else -> ExtractorLinkType.VIDEO
+            }
+
+            callback(
+                newExtractorLink(name, if (isHls) "$name HLS" else name, stream, type) {
+                    this.referer = url
+                    this.quality = Qualities.Unknown.value
+                    this.headers = mapOf(
+                        "User-Agent" to USER_AGENT,
+                        "Referer" to url,
+                        "Origin" to mainUrl,
+                        "Accept" to "*/*"
+                    )
                 }
-            }
-        Log.i(TAG, "VAR_TRACE_DONE variable=$variable occurrences=$occurrence assignments=$assignments")
+            )
+        }
     }
 
-    private fun logInlineScripts(html: String, variables: Set<String>) {
-        Regex("""(?is)<script\b[^>]*>(.*?)</script>""").findAll(html).forEachIndexed { index, match ->
-            val script = match.groupValues[1]
-            if (variables.any { script.contains(it) }) {
-                Log.i(TAG, "INLINE_SCRIPT_HIT index=$index len=${script.length} body=${script.take(12000)}")
-            }
+    private fun clean(value: String): String = value
+        .trim()
+        .replace("\\u0026", "&")
+        .replace("\\/", "/")
+        .replace("&amp;", "&")
+        .trim('"', '\'', ' ')
+
+    private fun absoluteUrl(raw: String): String {
+        val value = clean(raw)
+        return when {
+            value.startsWith("http://") || value.startsWith("https://") -> value
+            value.startsWith("//") -> "https:$value"
+            value.startsWith("/") -> "$mainUrl$value"
+            else -> "$mainUrl/$value"
         }
+    }
+
+    private fun isHls(url: String): Boolean {
+        val lower = url.lowercase()
+        return lower.contains(".m3u8") || lower.contains("/master.txt") || lower.contains("/hls/")
+    }
+
+    private fun looksLikeMedia(url: String): Boolean {
+        val lower = url.lowercase()
+        return isHls(lower) || lower.contains(".mp4") || lower.contains(".mpd")
     }
 
     companion object {
