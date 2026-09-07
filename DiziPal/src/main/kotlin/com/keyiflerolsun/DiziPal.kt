@@ -95,22 +95,66 @@ class DiziPal : MainAPI() {
         val description = document.selectFirst("meta[name=description]")?.attr("content")?.trim()
 
         if (url.contains("/dizi/")) {
-            val episodes = document.select("a.episode-item").mapNotNull { a ->
-                val epHref = fixUrlNull(a.attr("href")) ?: return@mapNotNull null
-                val label = a.selectFirst(".ep-label")?.text()?.trim()
-                    ?: a.text().trim()
+            // DiziPal 2126 yeni HTML yapısı:
+            // <a class="detail-episode-item" href="/bolum/...">
+            //   <div class="detail-episode-title">...</div>
+            //   <div class="detail-episode-subtitle">1. Sezon 1. Bölüm</div>
+            // </a>
+            //
+            // Eski selector "a.episode-item" olduğu için episodes boş dönüyor,
+            // custom host da diziyi oynatılabilir tek içerik sanıp /dizi/... adresini
+            // doğrudan loadLinks()'e gönderiyordu.
+            val episodes = document
+                .select("a.detail-episode-item, a.episode-item")
+                .mapNotNull { a ->
+                    val epHref = fixUrlNull(a.attr("href")) ?: return@mapNotNull null
 
-                val season = Regex("""(\d+)\.\s*Sezon""", RegexOption.IGNORE_CASE)
-                    .find(label)?.groupValues?.getOrNull(1)?.toIntOrNull()
-                val episode = Regex("""(\d+)\.\s*Bölüm""", RegexOption.IGNORE_CASE)
-                    .find(label)?.groupValues?.getOrNull(1)?.toIntOrNull()
+                    val subtitle = a
+                        .selectFirst(".detail-episode-subtitle, .ep-label")
+                        ?.text()
+                        ?.trim()
+                        .orEmpty()
 
-                newEpisode(epHref) {
-                    name = label
-                    this.season = season
-                    this.episode = episode
+                    val epTitle = a
+                        .selectFirst(".detail-episode-title")
+                        ?.text()
+                        ?.trim()
+                        .orEmpty()
+
+                    val label = subtitle
+                        .ifBlank { epTitle }
+                        .ifBlank { a.text().trim() }
+
+                    val season = Regex(
+                        """(\d+)\.?\s*Sezon""",
+                        RegexOption.IGNORE_CASE
+                    ).find(label)?.groupValues?.getOrNull(1)?.toIntOrNull()
+                        ?: Regex(
+                            """-(\d+)-sezon-""",
+                            RegexOption.IGNORE_CASE
+                        ).find(epHref)?.groupValues?.getOrNull(1)?.toIntOrNull()
+
+                    val episode = Regex(
+                        """(\d+)\.?\s*Bölüm""",
+                        RegexOption.IGNORE_CASE
+                    ).find(label)?.groupValues?.getOrNull(1)?.toIntOrNull()
+                        ?: Regex(
+                            """-(\d+)-bolum(?:/|$)""",
+                            RegexOption.IGNORE_CASE
+                        ).find(epHref)?.groupValues?.getOrNull(1)?.toIntOrNull()
+
+                    newEpisode(epHref) {
+                        name = epTitle.ifBlank { label }
+                        this.season = season
+                        this.episode = episode
+                    }
                 }
-            }
+                .distinctBy { it.data }
+
+            Log.d(
+                "DZP2126",
+                "series load title=$title episodes=${episodes.size} url=$url"
+            )
 
             return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 posterUrl = poster
@@ -131,6 +175,14 @@ class DiziPal : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         Log.d("DZP2126", "loadLinks data=$data")
+
+        if (data.contains("/dizi/")) {
+            Log.e(
+                "DZP2126",
+                "loadLinks SERIES_DETAIL_GUARD: /dizi/ detay sayfası oynatılmaz; bölüm /bolum/ seçilmeli. data=$data"
+            )
+            return false
+        }
 
         val document = app.get(data, referer = "$mainUrl/").document
         val cfg = document.selectFirst("#videoContainer[data-cfg]")?.attr("data-cfg").orEmpty()
