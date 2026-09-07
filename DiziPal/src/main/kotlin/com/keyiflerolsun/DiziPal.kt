@@ -62,8 +62,8 @@ class DiziPal : MainAPI() {
             )
         }
 
-        return HomePageResponse(
-            items = sections,
+        return newHomePageResponse(
+            sections,
             hasNext = hasNextPage(diziDoc, page) || hasNextPage(filmDoc, page)
         )
     }
