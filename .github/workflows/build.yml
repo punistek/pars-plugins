@@ -33,6 +33,17 @@ jobs:
           echo "CloudStream Gradle plugin:"
           grep "recloudstream:gradle" build.gradle.kts
 
+      - name: Install CloudStream Gradle plugin locally
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/cloudstream-gradle
+          git clone https://github.com/recloudstream/gradle.git /tmp/cloudstream-gradle
+          cd /tmp/cloudstream-gradle
+          git checkout 32895aedb6
+          chmod +x ./gradlew
+          ./gradlew publishToMavenLocal --no-daemon
+
       - name: Build all plugins
         run: |
           chmod +x ./gradlew
