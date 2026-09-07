@@ -5,6 +5,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 buildscript {
     repositories {
+        // CloudStream Gradle pluginini GitHub Actions'ta önce mavenLocal'e kuracağız.
+        mavenLocal()
         google()
         mavenCentral()
         maven("https://jitpack.io")
@@ -13,17 +15,16 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:8.7.3")
 
-        // Kekik-cloudstream'ın kullandığı çalışan koordinat.
-        // "-SNAPSHOT" sende JitPack metadata'sında bozuk commit'e çözülüyordu.
-        classpath("com.github.recloudstream:gradle:master-SNAPSHOT")
+        // JitPack'teki kırık -SNAPSHOT/master-SNAPSHOT metadata'sını tamamen bypass eder.
+        classpath("com.lagradost.cloudstream3:gradle:local-SNAPSHOT")
 
-        // Kekik tarafındaki uyumlu sürüm.
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0")
     }
 }
 
 allprojects {
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven("https://jitpack.io")
