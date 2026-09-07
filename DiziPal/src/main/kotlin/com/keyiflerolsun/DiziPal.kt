@@ -46,18 +46,19 @@ class DiziPal : MainAPI() {
 
         val sections = arrayListOf<HomePageList>()
 
-        if (diziler.isNotEmpty()) {
-            sections += HomePageList(
-                name = "Diziler",
-                list = diziler,
-                isHorizontalImages = false
-            )
-        }
-
+        // Ana ekranda istenen sıra: önce Filmler, hemen altında Diziler.
         if (filmler.isNotEmpty()) {
             sections += HomePageList(
                 name = "Filmler",
                 list = filmler,
+                isHorizontalImages = false
+            )
+        }
+
+        if (diziler.isNotEmpty()) {
+            sections += HomePageList(
+                name = "Diziler",
+                list = diziler,
                 isHorizontalImages = false
             )
         }
@@ -81,7 +82,9 @@ class DiziPal : MainAPI() {
 
         if (total != null) return page < total
 
-        return document.select("li.content-card").isNotEmpty()
+        return document.select(
+            "a[href*=/dizi/], a[href*=/film/]"
+        ).isNotEmpty()
     }
 
     private fun parseCards(
@@ -89,54 +92,100 @@ class DiziPal : MainAPI() {
         onlySeries: Boolean
     ): List<SearchResponse> {
 
-        return document.select("li.content-card").mapNotNull { card ->
-            val a = card.selectFirst("a.card-link")
-                ?: card.selectFirst("a[href*=/dizi/], a[href*=/film/]")
-                ?: return@mapNotNull null
+        /*
+         * DiziPal 2126'da liste HTML'i her istekte aynı wrapper class'ını
+         * kullanmak zorunda değil. Bu yüzden li.content-card'a bağımlı değiliz.
+         * Asıl güvenilir ayrım URL'dir:
+         *   dizi  -> /dizi/...
+         *   film  -> /film/...
+         */
+        val wantedPath = if (onlySeries) "/dizi/" else "/film/"
 
-            val href = fixUrlNull(a.attr("href")) ?: return@mapNotNull null
+        return document
+            .select("a[href*=$wantedPath]")
+            .mapNotNull { a ->
+                val href = fixUrlNull(a.attr("href"))
+                    ?: return@mapNotNull null
 
-            if (onlySeries && !href.contains("/dizi/")) {
-                return@mapNotNull null
-            }
-            if (!onlySeries && !href.contains("/film/")) {
-                return@mapNotNull null
-            }
-
-            val title = card
-                .selectFirst("h3.card-title")
-                ?.text()
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
-                ?: card.selectFirst("img")
-                    ?.attr("alt")
-                    ?.removeSuffix(" izle")
-                    ?.trim()
-                    ?.takeIf { it.isNotBlank() }
-                ?: return@mapNotNull null
-
-            val poster = card.selectFirst("img")?.let { img ->
-                img.attr("data-src").ifBlank { img.attr("src") }
-            }?.let(::fixUrlNull)
-
-            if (href.contains("/dizi/")) {
-                newTvSeriesSearchResponse(
-                    title,
-                    href,
-                    TvType.TvSeries
-                ) {
-                    posterUrl = poster
+                if (!href.contains(wantedPath)) {
+                    return@mapNotNull null
                 }
-            } else {
-                newMovieSearchResponse(
-                    title,
-                    href,
-                    TvType.Movie
-                ) {
-                    posterUrl = poster
+
+                // Kartın kendisi <a> olabilir; değilse poster/title taşıyan
+                // en yakın kapsayıcıyı bul.
+                var card: org.jsoup.nodes.Element = a
+                var parent = a.parent()
+                var depth = 0
+
+                while (parent != null && depth < 5) {
+                    if (
+                        parent.selectFirst("img") != null &&
+                        (
+                            parent.selectFirst(
+                                "h1, h2, h3, h4, .card-title, " +
+                                    ".title, .content-title, .poster-title"
+                            ) != null ||
+                            parent.text().isNotBlank()
+                        )
+                    ) {
+                        card = parent
+                        break
+                    }
+                    parent = parent.parent()
+                    depth++
+                }
+
+                val img = a.selectFirst("img")
+                    ?: card.selectFirst("img")
+
+                val title = sequenceOf(
+                    a.attr("title"),
+                    a.attr("aria-label"),
+                    img?.attr("alt").orEmpty(),
+                    card.selectFirst(
+                        "h1, h2, h3, h4, .card-title, " +
+                            ".title, .content-title, .poster-title"
+                    )?.text().orEmpty(),
+                    a.text(),
+                    card.text()
+                )
+                    .map { value ->
+                        value
+                            .replace(Regex("""\s+"""), " ")
+                            .removeSuffix(" izle")
+                            .trim()
+                    }
+                    .firstOrNull { it.isNotBlank() }
+                    ?: return@mapNotNull null
+
+                val poster = img?.let { element ->
+                    sequenceOf(
+                        element.attr("data-src"),
+                        element.attr("data-lazy-src"),
+                        element.attr("data-original"),
+                        element.attr("src")
+                    ).firstOrNull { it.isNotBlank() }
+                }?.let(::fixUrlNull)
+
+                if (onlySeries) {
+                    newTvSeriesSearchResponse(
+                        title,
+                        href,
+                        TvType.TvSeries
+                    ) {
+                        posterUrl = poster
+                    }
+                } else {
+                    newMovieSearchResponse(
+                        title,
+                        href,
+                        TvType.Movie
+                    ) {
+                        posterUrl = poster
+                    }
                 }
             }
-        }.distinctBy { it.url }
+            .distinctBy { it.url }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
