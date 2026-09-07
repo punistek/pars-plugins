@@ -1,8 +1,8 @@
-version = 1
+version = 2
 
 cloudstream {
     language = "tr"
-    description = "FilmMakinesi film kaynağı"
+    description = "FilmMakinesi - CloseLoad/Rapid player ve altyazı desteği"
     authors = listOf("PARS")
 
     status = 1
