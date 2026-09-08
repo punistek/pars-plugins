@@ -174,10 +174,12 @@ internal object FilmmakinesiPackedSource {
             // Keep only the actual absolute media URL if the decoder returned
             // surrounding text.
             Regex(
-                """https?://[^"'\\\s<>]+?(?:\.m3u8|\.mpd|\.mp4|/master\.txt)(?:\?[^"'\\\s<>]*)?""",
+                """https?://[^"'\\\s<>]+?(?:\.m3u8|/master\.txt)(?:\?[^"'\\\s<>]*)?""",
                 RegexOption.IGNORE_CASE
             ).find(decoded)?.value ?: decoded.takeIf {
-                it.startsWith("http://", true) || it.startsWith("https://", true)
+                val u = it.lowercase()
+                (it.startsWith("http://", true) || it.startsWith("https://", true)) &&
+                    (u.contains(".m3u8") || u.contains("/master.txt") || u.contains("/txt/master.txt"))
             }
         } catch (t: Throwable) {
             Log.e("FM-PACKED", "decryptLocalUrl failed: ${t.message}")

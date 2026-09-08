@@ -46,9 +46,8 @@ class RapidFilmmakinesiToExtractor : ExtractorApi() {
         val value = clean(raw)
         if (value.isNotBlank() && (
                 value.contains(".m3u8", true) ||
-                value.contains(".mpd", true) ||
-                value.contains(".mp4", true) ||
-                value.contains("/master.txt", true)
+                value.contains("/master.txt", true) ||
+                value.contains("/txt/master.txt", true)
             )
         ) set += value
     }
@@ -94,7 +93,7 @@ class RapidFilmmakinesiToExtractor : ExtractorApi() {
         }
 
         Regex(
-            """https?://[^"'\\\s<>]+?(?:\.m3u8|\.mpd|\.mp4|/master\.txt)(?:\?[^"'\\\s<>]*)?""",
+            """https?://[^"'\\\s<>]+?(?:\.m3u8|/master\.txt)(?:\?[^"'\\\s<>]*)?""",
             RegexOption.IGNORE_CASE
         ).findAll(body).forEach { addCandidate(candidates, it.value) }
 
@@ -106,9 +105,8 @@ class RapidFilmmakinesiToExtractor : ExtractorApi() {
             val value = clean(m.groupValues[2])
             if (
                 value.contains(".m3u8", true) ||
-                value.contains(".mpd", true) ||
-                value.contains(".mp4", true) ||
-                value.contains("/master.txt", true)
+                value.contains("/master.txt", true) ||
+                value.contains("/txt/master.txt", true)
             ) {
                 jsVariables[m.groupValues[1]] = value
                 addCandidate(candidates, value)
