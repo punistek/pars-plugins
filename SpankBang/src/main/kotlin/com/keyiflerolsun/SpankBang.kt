@@ -65,9 +65,11 @@ class SpankBang : MainAPI() {
         ).document
 
         val home = document
-            .select("div.main_results div.video-item, div.video-item")
+            .select("[data-testid=video-item], div.video-item")
             .mapNotNull { it.toSearchResult() }
             .distinctBy { it.url }
+
+        Log.d("SkBg", "MAIN items=${home.size}")
 
         return newHomePageResponse(
             list = HomePageList(
@@ -80,27 +82,39 @@ class SpankBang : MainAPI() {
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val link = selectFirst(
-            "div.name-and-menu-wrapper a[href], a[href*='/video/']"
-        ) ?: return null
-
-        val href = fixUrlNull(link.attr("href")) ?: return null
+        // Güncel yapı:
+        // <div data-testid="video-item">
+        //   <a href="/.../video/..." ...><picture><img src="..."></picture></a>
+        //   ...
+        //   <p><a href="/.../video/..." title="...">...</a></p>
+        // </div>
+        val videoLink = selectFirst("a[href*='/video/']") ?: return null
+        val href = fixUrlNull(videoLink.attr("href")) ?: return null
         if (!href.contains("/video/")) return null
 
+        val titleLink = selectFirst("p a[href*='/video/'][title], a[href*='/video/'][title]")
+        val img = selectFirst("picture img, img")
+
         val title = fixTitle(
-            link.attr("title")
-                .ifBlank { link.text() }
-                .ifBlank { selectFirst("img")?.attr("alt").orEmpty() }
+            titleLink?.attr("title").orEmpty()
+                .ifBlank { titleLink?.text().orEmpty() }
+                .ifBlank { img?.attr("alt").orEmpty() }
         )
         if (title.isBlank()) return null
 
-        val img = selectFirst("picture img, img")
-        val poster = img?.attr("data-src")
-            ?.takeIf { it.isNotBlank() }
-            ?: img?.attr("src")?.takeIf { it.isNotBlank() }
+        val posterRaw = listOf(
+            img?.attr("src"),
+            img?.attr("data-src"),
+            img?.attr("data-original"),
+            img?.attr("data-lazy-src")
+        ).firstOrNull { !it.isNullOrBlank() }
+
+        val poster = fixUrlNull(posterRaw)
+
+        Log.d("SkBg", "ITEM » $title | $href | poster=$poster")
 
         return newMovieSearchResponse(title, href, TvType.NSFW) {
-            posterUrl = fixUrlNull(poster)
+            posterUrl = poster
         }
     }
 
@@ -123,7 +137,7 @@ class SpankBang : MainAPI() {
             ).document
 
             val pageResults = document
-                .select("div.main_results div.video-item, div.video-item")
+                .select("[data-testid=video-item], div.video-item")
                 .mapNotNull { it.toSearchResult() }
                 .distinctBy { it.url }
 
@@ -146,12 +160,16 @@ class SpankBang : MainAPI() {
             referer = "$mainUrl/"
         ).document
 
-        val title = document.selectFirst("div#video h1, h1")?.text()?.trim()
+        val title = document.selectFirst("[data-testid=video-title], div#video h1, h1")
+            ?.text()?.trim()
+            ?.takeIf { it.isNotBlank() }
             ?: document.selectFirst("meta[property=og:title]")?.attr("content")?.trim()
             ?: return null
 
         val poster = fixUrlNull(
             document.selectFirst("meta[property='og:image']")?.attr("content")
+                ?.takeIf { it.isNotBlank() }
+                ?: document.selectFirst("#player_cover_img")?.attr("src")
         )
 
         val description =
@@ -164,15 +182,20 @@ class SpankBang : MainAPI() {
             ?.groupValues?.getOrNull(1)
             ?.toIntOrNull()
 
-        val tags = document.select(
-            "div.searches a, a[href*='/s/']"
-        ).map { it.text().trim() }.filter { it.isNotBlank() }.distinct()
+        val tags = document.select("a[href*='/s/']")
+            .map { it.text().trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
 
-        val duration = document.selectFirst("meta[property=og:duration]")
-            ?.attr("content")?.toIntOrNull()?.div(60)
+        val durationSeconds =
+            document.selectFirst("meta[property='og:video:duration']")?.attr("content")?.toIntOrNull()
+                ?: Regex("""['"]length['"]\s*:\s*(\d+)""")
+                    .find(document.html())
+                    ?.groupValues?.getOrNull(1)
+                    ?.toIntOrNull()
 
         val recommendations = document
-            .select("section.user_uploads div.video-item, div.video-item")
+            .select("[data-testid=video-item], div.video-item")
             .mapNotNull { it.toSearchResult() }
             .filter { it.url != url }
             .distinctBy { it.url }
@@ -180,17 +203,19 @@ class SpankBang : MainAPI() {
 
         val actors = document.select("li.primary_actions_container").mapNotNull {
             val actorName = it.selectFirst("span.name")?.text()?.trim()
-                ?.takeIf { name -> name.isNotBlank() }
+                ?.takeIf { actor -> actor.isNotBlank() }
                 ?: return@mapNotNull null
             Actor(actorName, fixUrlNull(it.selectFirst("img")?.attr("src")))
         }
+
+        Log.d("SkBg", "LOAD » $title | poster=$poster | duration=$durationSeconds")
 
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             posterUrl = poster
             plot = description
             this.year = year
             this.tags = tags
-            this.duration = duration
+            this.duration = durationSeconds?.div(60)
             this.recommendations = recommendations
             addActors(actors)
         }
@@ -208,7 +233,12 @@ class SpankBang : MainAPI() {
 
     private fun qualityFrom(label: String, url: String): Int {
         val text = "$label $url"
-        val q = Regex("""(?i)(2160|1440|1080|720|480|360|240)p?""")
+
+        if (Regex("""(?i)(?:^|[^0-9])4k(?:[^0-9]|$)""").containsMatchIn(text)) {
+            return Qualities.P2160.value
+        }
+
+        val q = Regex("""(?i)(2160|1440|1080|720|480|360|320|240)p?""")
             .find(text)?.groupValues?.getOrNull(1)?.toIntOrNull()
 
         return when (q) {
@@ -218,6 +248,7 @@ class SpankBang : MainAPI() {
             720 -> Qualities.P720.value
             480 -> Qualities.P480.value
             360 -> Qualities.P360.value
+            320 -> Qualities.P360.value
             240 -> Qualities.P240.value
             else -> Qualities.Unknown.value
         }
@@ -226,85 +257,49 @@ class SpankBang : MainAPI() {
     private fun extractStaticStreams(html: String): List<Pair<String, String>> {
         val streams = linkedMapOf<String, String>()
 
-        // Güncel SpankBang / yt-dlp mantığı:
-        // stream_url_720p = 'https://...mp4?...'
+        // Güncel SpankBang sayfasında doğrulanan yapı:
+        // var stream_data = {'240p': ['https://...mp4?...'], ...,
+        //                    'm3u8': ['https://...master.m3u8?...'], ...};
+        val streamData = Regex(
+            """(?is)var\s+stream_data\s*=\s*\{(.*?)\}\s*;"""
+        ).find(html)?.groupValues?.getOrNull(1)
+
+        if (!streamData.isNullOrBlank()) {
+            Regex(
+                """(?is)['"]([^'"]+)['"]\s*:\s*\[\s*['"]([^'"]+)['"]\s*]"""
+            ).findAll(streamData).forEach { match ->
+                val label = match.groupValues[1]
+                val videoUrl = decodeJsUrl(match.groupValues[2])
+                if (
+                    videoUrl.startsWith("http") &&
+                    (videoUrl.contains(".mp4", true) ||
+                        videoUrl.contains(".m3u8", true) ||
+                        videoUrl.contains(".mpd", true))
+                ) {
+                    streams[videoUrl] = label
+                }
+            }
+        }
+
+        // Eski sayfa yapısıyla geriye uyumluluk.
         Regex(
             """(?i)stream_url_([A-Za-z0-9_-]+)\s*=\s*["']([^"']+)["']"""
         ).findAll(html).forEach { match ->
             val label = match.groupValues[1]
-            val url = decodeJsUrl(match.groupValues[2])
-            if (url.startsWith("http")) streams[url] = label
+            val videoUrl = decodeJsUrl(match.groupValues[2])
+            if (videoUrl.startsWith("http")) streams.putIfAbsent(videoUrl, label)
         }
 
-        // Bazı sayfalarda obje/json biçiminde kalite -> URL.
+        // Obje/JSON biçimi fallback.
         Regex(
-            """(?i)["']?((?:2160|1440|1080|720|480|360|240)p?|m3u8[^"':,\s]*)["']?\s*:\s*(?:\[\s*)?["']([^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""
+            """(?i)["']?((?:2160|1440|1080|720|480|360|320|240)p?|4k|m3u8[^"':,\s]*)["']?\s*:\s*(?:\[\s*)?["']([^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""
         ).findAll(html).forEach { match ->
             val label = match.groupValues[1]
-            val url = decodeJsUrl(match.groupValues[2])
-            if (url.startsWith("http")) streams[url] = label
+            val videoUrl = decodeJsUrl(match.groupValues[2])
+            if (videoUrl.startsWith("http")) streams.putIfAbsent(videoUrl, label)
         }
 
-        // Son fallback: HTML/JS içinde geçen signed MP4/HLS URL'lerini yakala.
-        Regex(
-            """https?:\\?/\\?/[^"'\\\s<>]+?\.(?:mp4|m3u8|mpd)(?:\?[^"'\\\s<>]*)?""",
-            RegexOption.IGNORE_CASE
-        ).findAll(html).forEach { match ->
-            val url = decodeJsUrl(match.value)
-            if (url.startsWith("http")) streams.putIfAbsent(url, "Direct")
-        }
-
-        return streams.map { it.key to it.value }
-    }
-
-    private suspend fun extractViaStreamApi(
-        html: String,
-        referer: String
-    ): List<Pair<String, String>> {
-        val streamKey = Regex(
-            """data-streamkey\s*=\s*["']([^"']+)["']""",
-            RegexOption.IGNORE_CASE
-        ).find(html)?.groupValues?.getOrNull(1) ?: return emptyList()
-
-        Log.d("SkBg", "streamKey » $streamKey")
-
-        val response = app.post(
-            "$mainUrl/api/videos/stream",
-            data = mapOf(
-                "id" to streamKey,
-                "data" to "0"
-            ),
-            headers = pageHeaders + mapOf(
-                "X-Requested-With" to "XMLHttpRequest",
-                "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8"
-            ),
-            referer = referer
-        )
-
-        val body = response.text
-        Log.d("SkBg", "streamApi code=${response.code} len=${body.length}")
-
-        val streams = linkedMapOf<String, String>()
-
-        // {"720p":["https://...mp4"],"1080p":["..."]}
-        Regex(
-            """"([^"]+)"\s*:\s*\[\s*"([^"]+)""""
-        ).findAll(body).forEach { match ->
-            val label = match.groupValues[1]
-            val url = decodeJsUrl(match.groupValues[2])
-            if (url.startsWith("http")) streams[url] = label
-        }
-
-        // {"720p":"https://...mp4"}
-        Regex(
-            """"([^"]+)"\s*:\s*"([^"]+\.(?:mp4|m3u8|mpd)[^"]*)"""",
-            RegexOption.IGNORE_CASE
-        ).findAll(body).forEach { match ->
-            val label = match.groupValues[1]
-            val url = decodeJsUrl(match.groupValues[2])
-            if (url.startsWith("http")) streams[url] = label
-        }
-
+        Log.d("SkBg", "STATIC streams=${streams.size}")
         return streams.map { it.key to it.value }
     }
 
@@ -314,7 +309,7 @@ class SpankBang : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        Log.d("SkBg", "data » $data")
+        Log.d("SkBg", "LINKS data » $data")
 
         val response = app.get(
             data,
@@ -323,39 +318,31 @@ class SpankBang : MainAPI() {
         )
 
         val html = response.text
-
-        var streams = extractStaticStreams(html)
-
-        if (streams.isEmpty()) {
-            streams = runCatching {
-                extractViaStreamApi(html, data)
-            }.onFailure {
-                Log.e("SkBg", "stream api error", it)
-            }.getOrDefault(emptyList())
-        }
+        val streams = extractStaticStreams(html)
 
         if (streams.isEmpty()) {
-            Log.e("SkBg", "No playable stream found")
+            Log.e("SkBg", "No playable stream found in stream_data")
             return false
         }
 
-        Log.d("SkBg", "streams » ${streams.size}")
+        Log.d("SkBg", "LINKS streams=${streams.size}")
 
         streams
             .distinctBy { it.first }
             .sortedByDescending { qualityFrom(it.second, it.first) }
             .forEach { (videoUrl, label) ->
                 val quality = qualityFrom(label, videoUrl)
-                val displayName = if (quality == Qualities.Unknown.value) {
-                    "$name ${label.takeIf { it.isNotBlank() } ?: "Direct"}"
-                } else {
-                    "$name ${quality}p"
+
+                val cleanLabel = when {
+                    label.equals("m3u8", true) -> "Auto HLS"
+                    label.startsWith("m3u8_", true) -> label.removePrefix("m3u8_").uppercase()
+                    else -> label.uppercase()
                 }
 
                 callback.invoke(
                     newExtractorLink(
                         source = name,
-                        name = displayName,
+                        name = "$name $cleanLabel",
                         url = videoUrl,
                         type = INFER_TYPE
                     ) {
@@ -364,6 +351,7 @@ class SpankBang : MainAPI() {
                         headers = mapOf(
                             "User-Agent" to userAgent,
                             "Referer" to "$mainUrl/",
+                            "Origin" to mainUrl,
                             "Accept" to "*/*"
                         )
                     }
