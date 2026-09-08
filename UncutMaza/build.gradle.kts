@@ -1,8 +1,8 @@
-version = 1
+version = 3
 
 cloudstream {
     language = "hi"
-    description = "UncutMaza provider - doğrudan contentUrl/MP4 kaynağı"
+    description = "UncutMaza - Latest / Most Viewed / Longest / Popular / Random"
     authors = listOf("PARS")
     status = 1
     tvTypes = listOf("Movie")
