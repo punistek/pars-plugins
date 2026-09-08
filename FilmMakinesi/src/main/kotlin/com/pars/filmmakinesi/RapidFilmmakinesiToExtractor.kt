@@ -76,20 +76,11 @@ class RapidFilmmakinesiToExtractor : ExtractorApi() {
 
         val candidates = linkedSetOf<String>()
 
-        // Aynı HDFilmCehennemi yaklaşımını Rapid'e de uygula.
-        response.document.select("script").forEach { node ->
-            val script = node.data().ifBlank { node.html() }
-            if (
-                script.contains("sources:", true) ||
-                script.contains("sources =", true) ||
-                script.contains("eval(function(p,a,c,k,e,d)", true)
-            ) {
-                val decoded = FilmmakinesiPackedSource.unpackAndDecrypt(script)
-                if (!decoded.isNullOrBlank()) {
-                    Log.d("FM-RAPID", "Decoded packed source: $decoded")
-                    addCandidate(candidates, decoded)
-                }
-            }
+        // Önce güncel FilmMakinesi custom decoder, sonra HDF tarzı fallback.
+        val decodedSource = FilmmakinesiPackedSource.decryptFromPage(body)
+        if (!decodedSource.isNullOrBlank()) {
+            Log.d("FM-RAPID", "Decoded REAL HLS: $decodedSource")
+            addCandidate(candidates, decodedSource)
         }
 
         Regex(
@@ -164,12 +155,6 @@ class RapidFilmmakinesiToExtractor : ExtractorApi() {
                 )
                 return
             }
-
-            if (stream.contains(".mpd", true) || stream.contains(".mp4", true)) {
-                callback(
-                    newExtractorLink(name, name, stream) {
-                        this.referer = url
-                    }
                 )
                 return
             }

@@ -47,7 +47,7 @@ class CloseloadFilmmakinesiToExtractor : ExtractorApi() {
 
     private fun mediaHeaders(playerUrl: String): Map<String, String> =
         mapOf(
-            "Referer" to playerUrl,
+            "Referer" to "$mainUrl/",
             "Origin" to mainUrl,
             "User-Agent" to browserUa,
             "Accept" to "*/*",
@@ -92,21 +92,15 @@ class CloseloadFilmmakinesiToExtractor : ExtractorApi() {
 
         val candidates = linkedSetOf<String>()
 
-        // HDFilmCehennemi'ndeki çalışan ana mantık:
-        // sources: bulunan packed script -> getAndUnpack -> dinamik decrypt.
-        page.document.select("script").forEach { node ->
-            val script = node.data().ifBlank { node.html() }
-            if (
-                script.contains("sources:", true) ||
-                script.contains("sources =", true) ||
-                script.contains("eval(function(p,a,c,k,e,d)", true)
-            ) {
-                val decoded = FilmmakinesiPackedSource.unpackAndDecrypt(script)
-                if (!decoded.isNullOrBlank()) {
-                    Log.d("FM-CLOSE", "Decoded packed source: $decoded")
-                    addCandidate(candidates, decoded)
-                }
-            }
+        // FilmMakinesi'nin gerçek CloseLoad decoder'ı.
+        // Sayfadaki rastgele isimli function + key/pin + parça dizisini okuyup
+        // JWPlayer'a verilen gerçek HLS URL'sini hesaplar.
+        val decodedSource = FilmmakinesiPackedSource.decryptFromPage(body)
+        if (!decodedSource.isNullOrBlank()) {
+            Log.d("FM-CLOSE", "Decoded REAL HLS: $decodedSource")
+            addCandidate(candidates, decodedSource)
+        } else {
+            Log.d("FM-CLOSE", "Decoder returned no HLS")
         }
 
         // Fallback: yalnız açık HLS URL'leri. MP4/MPD final kaynak olarak KABUL EDİLMEZ.
@@ -158,6 +152,22 @@ class CloseloadFilmmakinesiToExtractor : ExtractorApi() {
             addCandidate(candidates, it.attr("src"))
         }
 
+
+        // CloseLoad sayfasındaki VTT altyazıları da doğrudan al.
+        Regex(
+            """"file"\s*:\s*"([^"]+)"\s*,\s*"kind"\s*:\s*"captions"\s*,\s*"label"\s*:\s*"([^"]+)"""",
+            setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+        ).findAll(body).forEach { match ->
+            val subUrl = clean(match.groupValues[1])
+            val label = match.groupValues[2].ifBlank { "Altyazı" }
+
+            if (subUrl.startsWith("http://", true) ||
+                subUrl.startsWith("https://", true)
+            ) {
+                subtitleCallback(SubtitleFile(label, subUrl))
+            }
+        }
+
         val emitted = linkedSetOf<String>()
         for (raw in candidates) {
             val stream = absoluteUrl(raw)
@@ -175,9 +185,11 @@ class CloseloadFilmmakinesiToExtractor : ExtractorApi() {
                 }.getOrDefault(false)
 
                 if (!manifestOk) {
-                    Log.d("FM-CLOSE", "Rejected stale HLS: $stream")
+                    Log.d("FM-CLOSE", "Rejected HLS (no #EXTM3U): $stream")
                     continue
                 }
+
+                Log.d("FM-CLOSE", "HLS_OK: $stream")
 
                 callback(
                     newExtractorLink(
@@ -192,13 +204,6 @@ class CloseloadFilmmakinesiToExtractor : ExtractorApi() {
                 )
                 return
             }
-
-            if (stream.contains(".mpd", true) || stream.contains(".mp4", true)) {
-                callback(
-                    newExtractorLink(name, name, stream) {
-                        this.referer = url
-                        headers = mediaHeaders(url)
-                    }
                 )
                 return
             }
