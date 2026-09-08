@@ -1,21 +1,31 @@
 package com.pars.filmmakinesi
 
-import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.utils.*
+import android.util.Log
+import com.lagradost.cloudstream3.SubtitleFile
+import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.utils.ExtractorApi
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class RapidFilmmakinesiToExtractor : ExtractorApi() {
+
     override val name = "Rapid"
     override val mainUrl = "https://rapid.filmmakinesi.to"
     override val requiresReferer = true
 
-    private fun absoluteUrl(raw: String): String {
-        val value = raw
+    private fun clean(raw: String): String =
+        raw.replace("\\u0026", "&")
             .replace("\\/", "/")
             .replace("&amp;", "&")
             .trim()
+            .trim('"', '\'', ' ')
 
+    private fun absoluteUrl(raw: String): String {
+        val value = clean(raw)
         return when {
-            value.startsWith("http://") || value.startsWith("https://") -> value
+            value.startsWith("http://", true) || value.startsWith("https://", true) -> value
             value.startsWith("//") -> "https:$value"
             value.startsWith("/") -> "$mainUrl$value"
             else -> "$mainUrl/$value"
@@ -27,18 +37,20 @@ class RapidFilmmakinesiToExtractor : ExtractorApi() {
         return u.contains(".m3u8") ||
             u.endsWith("/master.txt") ||
             u.contains("/master.txt?") ||
+            u.contains("/txt/master.txt") ||
             (u.contains("/hls/") && u.contains("master"))
     }
 
     private fun addCandidate(set: MutableSet<String>, raw: String?) {
         if (raw.isNullOrBlank()) return
-        val clean = raw
-            .replace("\\u0026", "&")
-            .replace("\\/", "/")
-            .replace("&amp;", "&")
-            .trim()
-            .trim('"', '\'', ' ')
-        if (clean.isNotBlank()) set.add(clean)
+        val value = clean(raw)
+        if (value.isNotBlank() && (
+                value.contains(".m3u8", true) ||
+                value.contains(".mpd", true) ||
+                value.contains(".mp4", true) ||
+                value.contains("/master.txt", true)
+            )
+        ) set += value
     }
 
     override suspend fun getUrl(
@@ -51,8 +63,13 @@ class RapidFilmmakinesiToExtractor : ExtractorApi() {
         val response = app.get(
             url,
             referer = pageReferer,
-            headers = mapOf("Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7")
+            headers = mapOf(
+                "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Cache-Control" to "no-cache",
+                "Pragma" to "no-cache"
+            )
         )
+
         val body = response.text
             .replace("\\u0026", "&")
             .replace("\\/", "/")
@@ -60,58 +77,58 @@ class RapidFilmmakinesiToExtractor : ExtractorApi() {
 
         val candidates = linkedSetOf<String>()
 
-        // Standard media URLs plus CloseLoad's HLS disguised as .../master.txt.
+        // Aynı HDFilmCehennemi yaklaşımını Rapid'e de uygula.
+        response.document.select("script").forEach { node ->
+            val script = node.data().ifBlank { node.html() }
+            if (
+                script.contains("sources:", true) ||
+                script.contains("sources =", true) ||
+                script.contains("eval(function(p,a,c,k,e,d)", true)
+            ) {
+                val decoded = FilmmakinesiPackedSource.unpackAndDecrypt(script)
+                if (!decoded.isNullOrBlank()) {
+                    Log.d("FM-RAPID", "Decoded packed source: $decoded")
+                    addCandidate(candidates, decoded)
+                }
+            }
+        }
+
         Regex(
-            """https?://[^"'\\s<>]+?(?:\.m3u8|\.mpd|\.mp4|/master\.txt)(?:\?[^"'\\s<>]*)?""",
+            """https?://[^"'\\\s<>]+?(?:\.m3u8|\.mpd|\.mp4|/master\.txt)(?:\?[^"'\\\s<>]*)?""",
             RegexOption.IGNORE_CASE
         ).findAll(body).forEach { addCandidate(candidates, it.value) }
 
-        // JS/JWPlayer file/src values.
+        val jsVariables = linkedMapOf<String, String>()
         Regex(
-            """(?:file|src|contentUrl)\s*["']?\s*[:=]\s*["']([^"']+)["']""",
+            """(?:var|let|const)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*["']([^"']+)["']""",
             RegexOption.IGNORE_CASE
         ).findAll(body).forEach { m ->
-            val value = m.groupValues[1]
+            val value = clean(m.groupValues[2])
             if (
                 value.contains(".m3u8", true) ||
                 value.contains(".mpd", true) ||
                 value.contains(".mp4", true) ||
                 value.contains("/master.txt", true)
-            ) addCandidate(candidates, value)
+            ) {
+                jsVariables[m.groupValues[1]] = value
+                addCandidate(candidates, value)
+            }
         }
 
-        // JSON-LD VideoObject is particularly reliable on CloseLoad.
-        response.document.select("""script[type="application/ld+json"]""").forEach { node ->
-            val json = node.data().ifBlank { node.html() }
-                .replace("\\/", "/")
-                .replace("&amp;", "&")
-            Regex(
-                """"contentUrl"\s*:\s*"([^"]+)"""",
-                RegexOption.IGNORE_CASE
-            ).findAll(json).forEach { addCandidate(candidates, it.groupValues[1]) }
+        Regex(
+            """(?:file|src|contentUrl)\s*:\s*([A-Za-z_$][A-Za-z0-9_$]*)""",
+            RegexOption.IGNORE_CASE
+        ).findAll(body).forEach { m ->
+            addCandidate(candidates, jsVariables[m.groupValues[1]])
         }
+
+        Regex(
+            """(?:file|src|contentUrl)\s*["']?\s*[:=]\s*["']([^"']+)["']""",
+            RegexOption.IGNORE_CASE
+        ).findAll(body).forEach { addCandidate(candidates, it.groupValues[1]) }
 
         response.document.select("video[src], source[src], audio[src]").forEach {
             addCandidate(candidates, it.attr("src"))
-        }
-
-        // Captions/subtitles from JWPlayer tracks.
-        val subtitles = linkedSetOf<Pair<String, String>>()
-        Regex(
-            """\{[^{}]*["']file["']\s*:\s*["']([^"']+\.vtt[^"']*)["'][^{}]*["'](?:label|name)["']\s*:\s*["']([^"']+)["'][^{}]*\}""",
-            setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
-        ).findAll(body).forEach {
-            subtitles.add(it.groupValues[2] to absoluteUrl(it.groupValues[1]))
-        }
-        // Also handle label before file.
-        Regex(
-            """\{[^{}]*["'](?:label|name)["']\s*:\s*["']([^"']+)["'][^{}]*["']file["']\s*:\s*["']([^"']+\.vtt[^"']*)["'][^{}]*\}""",
-            setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
-        ).findAll(body).forEach {
-            subtitles.add(it.groupValues[1] to absoluteUrl(it.groupValues[2]))
-        }
-        subtitles.forEach { (label, subUrl) ->
-            subtitleCallback(SubtitleFile(label.ifBlank { "Subtitle" }, subUrl))
         }
 
         val emitted = linkedSetOf<String>()
@@ -119,33 +136,44 @@ class RapidFilmmakinesiToExtractor : ExtractorApi() {
             val stream = absoluteUrl(raw)
             if (!emitted.add(stream)) continue
 
-            when {
-                isHls(stream) -> {
-                    callback(
-                        newExtractorLink(
-                            source = name,
-                            name = name,
-                            url = stream,
-                            type = ExtractorLinkType.M3U8
-                        ) {
-                            quality = Qualities.Unknown.value
-                            headers = mapOf(
-                                "Referer" to url,
-                                "Origin" to mainUrl
-                            )
-                        }
-                    )
+            if (isHls(stream)) {
+                val headers = mapOf(
+                    "Referer" to url,
+                    "Origin" to mainUrl
+                )
+
+                val manifestOk = runCatching {
+                    app.get(stream, referer = url, headers = headers)
+                        .text
+                        .contains("#EXTM3U", ignoreCase = true)
+                }.getOrDefault(false)
+
+                if (!manifestOk) {
+                    Log.d("FM-RAPID", "Rejected stale HLS: $stream")
+                    continue
                 }
-                stream.contains(".mpd", true) -> {
-                    callback(newExtractorLink(name, name, stream, INFER_TYPE) {
+
+                callback(
+                    newExtractorLink(
+                        source = name,
+                        name = name,
+                        url = stream,
+                        type = ExtractorLinkType.M3U8
+                    ) {
+                        quality = Qualities.Unknown.value
+                        this.headers = headers
+                    }
+                )
+                return
+            }
+
+            if (stream.contains(".mpd", true) || stream.contains(".mp4", true)) {
+                callback(
+                    newExtractorLink(name, name, stream) {
                         this.referer = url
-                    })
-                }
-                stream.contains(".mp4", true) -> {
-                    callback(newExtractorLink(name, name, stream, INFER_TYPE) {
-                        this.referer = url
-                    })
-                }
+                    }
+                )
+                return
             }
         }
     }
