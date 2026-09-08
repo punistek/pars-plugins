@@ -1,135 +1,378 @@
-// ! https://github.com/phisher98/CXXX/blob/master/spankbang/src/main/kotlin/com/Spankbang/spankbang.kt
-
 package com.keyiflerolsun
 
 import android.util.Log
-import org.jsoup.nodes.*
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.utils.*
+import org.jsoup.nodes.Element
 
 class SpankBang : MainAPI() {
-    override var mainUrl              = "https://spankbang.com"
-    override var name                 = "SpankBang"
-    override val hasMainPage          = true
-    override var lang                 = "en"
-    override val hasQuickSearch       = false
-    override val supportedTypes       = setOf(TvType.NSFW)
-    override val vpnStatus            = VPNStatus.MightBeNeeded
 
-    override val mainPage = mainPageOf(
-        "${mainUrl}/new_videos/"                to "New",
-        "${mainUrl}/upcoming/"                  to "Upcoming",
-        "${mainUrl}/trending_videos/"           to "Trend",
-        "${mainUrl}/most_popular/"              to "Popular",
-        "${mainUrl}/s/onlyfans/"                to "OnlyFans",
-        "${mainUrl}/7i/channel/girlsway/"       to "Girlsway",
-        "${mainUrl}/jg/channel/met+art+x/"      to "Met Art X",
-        "${mainUrl}/je/channel/sex+art/"        to "Sex Art",
-        "${mainUrl}/ja/channel/teen+erotica/"   to "Teen Erotica",
-        "${mainUrl}/7u/channel/21+naturals/"    to "21 Naturals",
-        "${mainUrl}/4w/channel/letsdoeit/"      to "LETSDOEIT",
-        "${mainUrl}/np/channel/facials4k/"      to "FACIALS4K",
-        "${mainUrl}/9b/channel/throated/"       to "Throated",
-        "${mainUrl}/6l/channel/mylf/"           to "MYLF",
-        "${mainUrl}/ce/channel/bratty+milf/"    to "Bratty MILF",
-        "${mainUrl}/6c/channel/teamskeet/"      to "TeamSkeet",
-        "${mainUrl}/j2/channel/familyxxx/"      to "Family XXX",
-        "${mainUrl}/d6/channel/my+family+pies/" to "My Family Pies",
-        "${mainUrl}/6d/channel/family+strokes/" to "Family Strokes",
-        "${mainUrl}/j3/channel/hot+wife+xxx/"   to "Hot Wife XXX",
-        "${mainUrl}/o4/channel/touch+my+wife/"  to "Touch My Wife",
-        "${mainUrl}/1q/channel/daddy4k/"        to "Daddy4K",
-        "${mainUrl}/co/channel/moms+teach+sex/" to "Moms Teach",
-        "${mainUrl}/8f/channel/mom+swap/"       to "Mom Swap",
-        "${mainUrl}/cf/channel/bratty+sis/"     to "Bratty Sis",
-        "${mainUrl}/8b/channel/sis+swap/"       to "Sis Swap",
+    override var mainUrl = "https://spankbang.com"
+    override var name = "SpankBang"
+    override val hasMainPage = true
+    override var lang = "en"
+    override val hasQuickSearch = false
+    override val supportedTypes = setOf(TvType.NSFW)
+    override val vpnStatus = VPNStatus.MightBeNeeded
+
+    private val userAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/152.0.0.0 Safari/537.36"
+
+    private val pageHeaders = mapOf(
+        "User-Agent" to userAgent,
+        "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language" to "en-US,en;q=0.9,tr;q=0.8",
+        "Cookie" to "age_pass=1; cookie_consent_required=0; show_cookie_consent_modal=0"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("${request.data}${page}/?o=popular&p=w&d=10").document
-        val home     = document.select("div.main_results div.video-item").mapNotNull { it.toSearchResult() }
+    override val mainPage = mainPageOf(
+        "$mainUrl/new_videos/" to "New",
+        "$mainUrl/trending_videos/" to "Trend",
+        "$mainUrl/most_popular/" to "Popular",
+        "$mainUrl/s/asian/" to "Asian",
+        "$mainUrl/s/teen/" to "Teen",
+        "$mainUrl/s/onlyfans/" to "OnlyFans",
+        "$mainUrl/s/amateur/" to "Amateur",
+        "$mainUrl/s/milf/" to "MILF",
+        "$mainUrl/s/lesbian/" to "Lesbian",
+        "$mainUrl/s/anal/" to "Anal",
+        "$mainUrl/s/creampie/" to "Creampie"
+    )
+
+    private fun pageUrl(base: String, page: Int, order: String = "popular"): String {
+        val clean = base.trimEnd('/')
+        return if (page <= 1) {
+            "$clean/?o=$order&p=w&d=10"
+        } else {
+            "$clean/$page/?o=$order&p=w&d=10"
+        }
+    }
+
+    override suspend fun getMainPage(
+        page: Int,
+        request: MainPageRequest
+    ): HomePageResponse {
+        val url = pageUrl(request.data, page)
+        Log.d("SkBg", "MAIN » $url")
+
+        val document = app.get(
+            url,
+            headers = pageHeaders,
+            referer = "$mainUrl/"
+        ).document
+
+        val home = document
+            .select("div.main_results div.video-item, div.video-item")
+            .mapNotNull { it.toSearchResult() }
+            .distinctBy { it.url }
 
         return newHomePageResponse(
-            list    = HomePageList(
-                name               = request.name,
-                list               = home,
+            list = HomePageList(
+                name = request.name,
+                list = home,
                 isHorizontalImages = true
             ),
-            hasNext = true
+            hasNext = home.isNotEmpty()
         )
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val title     = fixTitle(this.select("div.name-and-menu-wrapper a").text())
-        val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.select("picture img").attr("data-src"))
+        val link = selectFirst(
+            "div.name-and-menu-wrapper a[href], a[href*='/video/']"
+        ) ?: return null
 
-        return newMovieSearchResponse(title, href, TvType.NSFW) { this.posterUrl = posterUrl }
+        val href = fixUrlNull(link.attr("href")) ?: return null
+        if (!href.contains("/video/")) return null
+
+        val title = fixTitle(
+            link.attr("title")
+                .ifBlank { link.text() }
+                .ifBlank { selectFirst("img")?.attr("alt").orEmpty() }
+        )
+        if (title.isBlank()) return null
+
+        val img = selectFirst("picture img, img")
+        val poster = img?.attr("data-src")
+            ?.takeIf { it.isNotBlank() }
+            ?: img?.attr("src")?.takeIf { it.isNotBlank() }
+
+        return newMovieSearchResponse(title, href, TvType.NSFW) {
+            posterUrl = fixUrlNull(poster)
+        }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val searchResponse = mutableListOf<SearchResponse>()
+        val results = mutableListOf<SearchResponse>()
+        val safeQuery = query.trim().replace(" ", "+")
 
-        for (say in 1..5) {
-            val document = app.get("${mainUrl}/s/${query}/${say}/?o=new&d=10").document
-            val results  = document.select("div.main_results div.video-item").mapNotNull { it.toSearchResult() }
-
-            if (!searchResponse.containsAll(results)) {
-                searchResponse.addAll(results)
+        for (page in 1..5) {
+            val base = "$mainUrl/s/$safeQuery/"
+            val url = if (page == 1) {
+                "${base}?o=new&d=10"
             } else {
-                break
+                "${base}${page}/?o=new&d=10"
             }
 
-            if (results.isEmpty()) break
+            val document = app.get(
+                url,
+                headers = pageHeaders,
+                referer = "$mainUrl/"
+            ).document
+
+            val pageResults = document
+                .select("div.main_results div.video-item, div.video-item")
+                .mapNotNull { it.toSearchResult() }
+                .distinctBy { it.url }
+
+            if (pageResults.isEmpty()) break
+
+            val before = results.size
+            pageResults.forEach { item ->
+                if (results.none { it.url == item.url }) results.add(item)
+            }
+            if (results.size == before) break
         }
 
-        return searchResponse
+        return results
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url).document
+        val document = app.get(
+            url,
+            headers = pageHeaders,
+            referer = "$mainUrl/"
+        ).document
 
-        val title           = document.selectFirst("div#video h1")?.text()?.trim() ?: return null
-        val poster          = fixUrlNull(document.selectFirst("meta[property='og:image']")?.attr("content"))
-        val description     = document.selectFirst("a[href*='join']")?.text()?.trim() ?: title
-        val year            = Regex(""""uploadDate":\s*"(\d{4})""").find(document.html())?.groupValues?.get(1)?.toIntOrNull()
-        val tags            = document.select("div.searches a").map { it.text() }
-        val rating          = document.selectFirst("span.rate")?.text()?.trim()?.substringBefore("%")?.toRatingInt()?.div(10)
-        val duration        = document.selectFirst("meta[property=og:duration]")?.attr("content")?.toIntOrNull()?.div(60)
-        val recommendations = document.select("section.user_uploads div.video-item").mapNotNull { it.toSearchResult() }
-        val actors          = document.select("li.primary_actions_container").map {
-            Actor(it.selectFirst("span.name")!!.text(), fixUrlNull(it.selectFirst("img")?.attr("src")))
+        val title = document.selectFirst("div#video h1, h1")?.text()?.trim()
+            ?: document.selectFirst("meta[property=og:title]")?.attr("content")?.trim()
+            ?: return null
+
+        val poster = fixUrlNull(
+            document.selectFirst("meta[property='og:image']")?.attr("content")
+        )
+
+        val description =
+            document.selectFirst("meta[property='og:description']")?.attr("content")?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?: title
+
+        val year = Regex(""""uploadDate"\s*:\s*"(\d{4})""")
+            .find(document.html())
+            ?.groupValues?.getOrNull(1)
+            ?.toIntOrNull()
+
+        val tags = document.select(
+            "div.searches a, a[href*='/s/']"
+        ).map { it.text().trim() }.filter { it.isNotBlank() }.distinct()
+
+        val rating = document.selectFirst("span.rate")
+            ?.text()?.trim()?.substringBefore("%")
+            ?.toRatingInt()?.div(10)
+
+        val duration = document.selectFirst("meta[property=og:duration]")
+            ?.attr("content")?.toIntOrNull()?.div(60)
+
+        val recommendations = document
+            .select("section.user_uploads div.video-item, div.video-item")
+            .mapNotNull { it.toSearchResult() }
+            .filter { it.url != url }
+            .distinctBy { it.url }
+            .take(20)
+
+        val actors = document.select("li.primary_actions_container").mapNotNull {
+            val actorName = it.selectFirst("span.name")?.text()?.trim()
+                ?.takeIf { name -> name.isNotBlank() }
+                ?: return@mapNotNull null
+            Actor(actorName, fixUrlNull(it.selectFirst("img")?.attr("src")))
         }
 
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
-            this.posterUrl       = poster
-            this.plot            = description
-            this.year            = year
-            this.tags            = tags
-            this.rating          = rating
-            this.duration        = duration
+            posterUrl = poster
+            plot = description
+            this.year = year
+            this.tags = tags
+            this.rating = rating
+            this.duration = duration
             this.recommendations = recommendations
             addActors(actors)
         }
     }
 
-    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
-        Log.d("SkBg", "data » $data")
-        val document = app.get(data).document
-        val videoUrl = Regex("""'m3u8': \['([^'\]]+)""").find(document.html())?.groupValues?.get(1) ?: return false
-        Log.d("SkBg", "videoUrl » $videoUrl")
+    private fun decodeJsUrl(raw: String): String {
+        return raw
+            .trim()
+            .trim('"', '\'', '[', ']', ' ')
+            .replace("\\/", "/")
+            .replace("\\u0026", "&", ignoreCase = true)
+            .replace("\\x26", "&", ignoreCase = true)
+            .replace("&amp;", "&")
+    }
 
-        callback.invoke(
-            ExtractorLink(
-                source  = this.name,
-                name    = this.name,
-                url     = fixUrl(videoUrl),
-                referer = data,
-                quality = Qualities.Unknown.value,
-                type    = INFER_TYPE
-            )
+    private fun qualityFrom(label: String, url: String): Int {
+        val text = "$label $url"
+        val q = Regex("""(?i)(2160|1440|1080|720|480|360|240)p?""")
+            .find(text)?.groupValues?.getOrNull(1)?.toIntOrNull()
+
+        return when (q) {
+            2160 -> Qualities.P2160.value
+            1440 -> Qualities.P1440.value
+            1080 -> Qualities.P1080.value
+            720 -> Qualities.P720.value
+            480 -> Qualities.P480.value
+            360 -> Qualities.P360.value
+            240 -> Qualities.P240.value
+            else -> Qualities.Unknown.value
+        }
+    }
+
+    private fun extractStaticStreams(html: String): List<Pair<String, String>> {
+        val streams = linkedMapOf<String, String>()
+
+        // Güncel SpankBang / yt-dlp mantığı:
+        // stream_url_720p = 'https://...mp4?...'
+        Regex(
+            """(?i)stream_url_([A-Za-z0-9_-]+)\s*=\s*["']([^"']+)["']"""
+        ).findAll(html).forEach { match ->
+            val label = match.groupValues[1]
+            val url = decodeJsUrl(match.groupValues[2])
+            if (url.startsWith("http")) streams[url] = label
+        }
+
+        // Bazı sayfalarda obje/json biçiminde kalite -> URL.
+        Regex(
+            """(?i)["']?((?:2160|1440|1080|720|480|360|240)p?|m3u8[^"':,\s]*)["']?\s*:\s*(?:\[\s*)?["']([^"']+\.(?:mp4|m3u8|mpd)[^"']*)["']"""
+        ).findAll(html).forEach { match ->
+            val label = match.groupValues[1]
+            val url = decodeJsUrl(match.groupValues[2])
+            if (url.startsWith("http")) streams[url] = label
+        }
+
+        // Son fallback: HTML/JS içinde geçen signed MP4/HLS URL'lerini yakala.
+        Regex(
+            """https?:\\?/\\?/[^"'\\\s<>]+?\.(?:mp4|m3u8|mpd)(?:\?[^"'\\\s<>]*)?""",
+            RegexOption.IGNORE_CASE
+        ).findAll(html).forEach { match ->
+            val url = decodeJsUrl(match.value)
+            if (url.startsWith("http")) streams.putIfAbsent(url, "Direct")
+        }
+
+        return streams.map { it.key to it.value }
+    }
+
+    private suspend fun extractViaStreamApi(
+        html: String,
+        referer: String
+    ): List<Pair<String, String>> {
+        val streamKey = Regex(
+            """data-streamkey\s*=\s*["']([^"']+)["']""",
+            RegexOption.IGNORE_CASE
+        ).find(html)?.groupValues?.getOrNull(1) ?: return emptyList()
+
+        Log.d("SkBg", "streamKey » $streamKey")
+
+        val response = app.post(
+            "$mainUrl/api/videos/stream",
+            data = mapOf(
+                "id" to streamKey,
+                "data" to "0"
+            ),
+            headers = pageHeaders + mapOf(
+                "X-Requested-With" to "XMLHttpRequest",
+                "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8"
+            ),
+            referer = referer
         )
+
+        val body = response.text
+        Log.d("SkBg", "streamApi code=${response.code} len=${body.length}")
+
+        val streams = linkedMapOf<String, String>()
+
+        // {"720p":["https://...mp4"],"1080p":["..."]}
+        Regex(
+            """"([^"]+)"\s*:\s*\[\s*"([^"]+)""""
+        ).findAll(body).forEach { match ->
+            val label = match.groupValues[1]
+            val url = decodeJsUrl(match.groupValues[2])
+            if (url.startsWith("http")) streams[url] = label
+        }
+
+        // {"720p":"https://...mp4"}
+        Regex(
+            """"([^"]+)"\s*:\s*"([^"]+\.(?:mp4|m3u8|mpd)[^"]*)"""",
+            RegexOption.IGNORE_CASE
+        ).findAll(body).forEach { match ->
+            val label = match.groupValues[1]
+            val url = decodeJsUrl(match.groupValues[2])
+            if (url.startsWith("http")) streams[url] = label
+        }
+
+        return streams.map { it.key to it.value }
+    }
+
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        Log.d("SkBg", "data » $data")
+
+        val response = app.get(
+            data,
+            headers = pageHeaders,
+            referer = "$mainUrl/"
+        )
+
+        val html = response.text
+
+        var streams = extractStaticStreams(html)
+
+        if (streams.isEmpty()) {
+            streams = runCatching {
+                extractViaStreamApi(html, data)
+            }.onFailure {
+                Log.e("SkBg", "stream api error", it)
+            }.getOrDefault(emptyList())
+        }
+
+        if (streams.isEmpty()) {
+            Log.e("SkBg", "No playable stream found")
+            return false
+        }
+
+        Log.d("SkBg", "streams » ${streams.size}")
+
+        streams
+            .distinctBy { it.first }
+            .sortedByDescending { qualityFrom(it.second, it.first) }
+            .forEach { (videoUrl, label) ->
+                val quality = qualityFrom(label, videoUrl)
+                val displayName = if (quality == Qualities.Unknown.value) {
+                    "$name ${label.takeIf { it.isNotBlank() } ?: "Direct"}"
+                } else {
+                    "$name ${quality}p"
+                }
+
+                callback.invoke(
+                    ExtractorLink(
+                        source = name,
+                        name = displayName,
+                        url = videoUrl,
+                        referer = "$mainUrl/",
+                        quality = quality,
+                        headers = mapOf(
+                            "User-Agent" to userAgent,
+                            "Referer" to "$mainUrl/",
+                            "Accept" to "*/*"
+                        ),
+                        type = INFER_TYPE
+                    )
+                )
+            }
 
         return true
     }
