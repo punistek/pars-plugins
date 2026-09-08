@@ -32,22 +32,31 @@ class SpankBang : MainAPI() {
         "$mainUrl/new_videos/" to "New",
         "$mainUrl/trending_videos/" to "Trend",
         "$mainUrl/most_popular/" to "Popular",
-        "$mainUrl/s/asian/" to "Asian",
-        "$mainUrl/s/teen/" to "Teen",
         "$mainUrl/s/onlyfans/" to "OnlyFans",
-        "$mainUrl/s/amateur/" to "Amateur",
         "$mainUrl/s/milf/" to "MILF",
-        "$mainUrl/s/lesbian/" to "Lesbian",
+        "$mainUrl/s/amateur/" to "Amateur",
+        "$mainUrl/s/asian/" to "Asian",
         "$mainUrl/s/anal/" to "Anal",
+        "$mainUrl/s/big+tits/" to "Big Tits",
+        "$mainUrl/s/teen/" to "Teen",
+        "$mainUrl/s/lesbian/" to "Lesbian",
         "$mainUrl/s/creampie/" to "Creampie"
     )
 
-    private fun pageUrl(base: String, page: Int, order: String = "popular"): String {
+    private fun pageUrl(base: String, page: Int): String {
         val clean = base.trimEnd('/')
+
+        // Kategori URL'sini ilk sayfada AYNEN kullan.
+        // Örn:
+        // https://spankbang.com/s/amateur/
+        // https://spankbang.com/s/asian/
+        // https://spankbang.com/s/anal/
+        // https://spankbang.com/s/big+tits/
+        // https://spankbang.com/s/teen/
         return if (page <= 1) {
-            "$clean/?o=$order&p=w&d=10"
+            "$clean/"
         } else {
-            "$clean/$page/?o=$order&p=w&d=10"
+            "$clean/$page/"
         }
     }
 
@@ -208,9 +217,9 @@ class SpankBang : MainAPI() {
         for (page in 1..5) {
             val base = "$mainUrl/s/$safeQuery/"
             val url = if (page == 1) {
-                "${base}?o=new&d=10"
+                base
             } else {
-                "${base}${page}/?o=new&d=10"
+                "${base}${page}/"
             }
 
             val document = app.get(
