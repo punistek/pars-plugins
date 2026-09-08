@@ -204,9 +204,6 @@ class CloseloadFilmmakinesiToExtractor : ExtractorApi() {
                 )
                 return
             }
-                )
-                return
-            }
         }
     }
 }

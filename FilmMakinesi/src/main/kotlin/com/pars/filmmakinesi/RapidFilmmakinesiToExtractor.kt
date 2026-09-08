@@ -155,9 +155,6 @@ class RapidFilmmakinesiToExtractor : ExtractorApi() {
                 )
                 return
             }
-                )
-                return
-            }
         }
     }
 }
