@@ -48,8 +48,9 @@ class UncutMaza : MainAPI() {
         val anchor = selectFirst("a[href]") ?: return null
         val href = fixUrlNull(anchor.attr("href")) ?: return null
 
-        // Menü/reklam vb. değil, gerçek video postu olmalı.
-        if (!hasClass("thumb-block") && !classNames().contains("video-preview-item")) return null
+        // Gerçek sitede kartlar article.thumb-block olarak geliyor.
+        // video-preview-item sınıfı her kartta yok; eski filtre tüm sonuçları eliyordu.
+        if (!hasClass("thumb-block")) return null
 
         val title = anchor.attr("title")
             .ifBlank { selectFirst("header.entry-header span")?.text().orEmpty() }
@@ -71,7 +72,7 @@ class UncutMaza : MainAPI() {
 
     private fun parseCards(document: org.jsoup.nodes.Document): List<SearchResponse> {
         return document
-            .select("article.thumb-block.video-preview-item")
+            .select("article.thumb-block")
             .mapNotNull { it.toSearchResult() }
             .distinctBy { it.url }
     }
@@ -86,8 +87,12 @@ class UncutMaza : MainAPI() {
             referer = "$mainUrl/"
         )
 
-        val items = parseCards(response.document)
-        Log.d("UNCUTMAZA", "MAIN items=${items.size}")
+        val rawCards = response.document.select("article.thumb-block")
+        val items = rawCards.mapNotNull { it.toSearchResult() }.distinctBy { it.url }
+        Log.d(
+            "UNCUTMAZA",
+            "MAIN http=${response.code} rawCards=${rawCards.size} items=${items.size} title=${response.document.title()}"
+        )
 
         return newHomePageResponse(request.name, items)
     }
@@ -105,7 +110,10 @@ class UncutMaza : MainAPI() {
             referer = "$mainUrl/"
         )
 
-        return parseCards(response.document)
+        val rawCards = response.document.select("article.thumb-block")
+        val items = rawCards.mapNotNull { it.toSearchResult() }.distinctBy { it.url }
+        Log.d("UNCUTMAZA", "SEARCH rawCards=${rawCards.size} items=${items.size}")
+        return items
     }
 
     override suspend fun load(url: String): LoadResponse? {
