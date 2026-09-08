@@ -168,10 +168,6 @@ class SpankBang : MainAPI() {
             "div.searches a, a[href*='/s/']"
         ).map { it.text().trim() }.filter { it.isNotBlank() }.distinct()
 
-        val rating = document.selectFirst("span.rate")
-            ?.text()?.trim()?.substringBefore("%")
-            ?.toRatingInt()?.div(10)
-
         val duration = document.selectFirst("meta[property=og:duration]")
             ?.attr("content")?.toIntOrNull()?.div(60)
 
@@ -194,7 +190,6 @@ class SpankBang : MainAPI() {
             plot = description
             this.year = year
             this.tags = tags
-            this.rating = rating
             this.duration = duration
             this.recommendations = recommendations
             addActors(actors)
@@ -358,19 +353,20 @@ class SpankBang : MainAPI() {
                 }
 
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = name,
                         name = displayName,
                         url = videoUrl,
-                        referer = "$mainUrl/",
-                        quality = quality,
+                        type = INFER_TYPE
+                    ) {
+                        referer = "$mainUrl/"
+                        this.quality = quality
                         headers = mapOf(
                             "User-Agent" to userAgent,
                             "Referer" to "$mainUrl/",
                             "Accept" to "*/*"
-                        ),
-                        type = INFER_TYPE
-                    )
+                        )
+                    }
                 )
             }
 
