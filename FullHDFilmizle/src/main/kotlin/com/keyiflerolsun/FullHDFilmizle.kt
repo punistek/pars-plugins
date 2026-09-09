@@ -3,6 +3,7 @@ package com.keyiflerolsun
 import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import org.jsoup.nodes.Element
 
 class FullHDFilmizle : MainAPI() {
     override var mainUrl = "https://fullhdfilmizle.now"
@@ -88,8 +89,6 @@ class FullHDFilmizle : MainAPI() {
         val year = Regex("""\((\d{4})\)""")
             .find(doc.title())?.groupValues?.getOrNull(1)?.toIntOrNull()
 
-        // Ayrıntı sayfasında bulunan oynatıcı kimliği/token'ı data olarak saklanır.
-        // Stream URL uydurulmaz; loadLinks aynı sayfayı tekrar okuyup gerçek embed varsa kullanır.
         val face = doc.selectFirst(".vp-face")
         val srcId = face?.attr("data-src-id").orEmpty()
         val srcToken = face?.attr("data-src-token").orEmpty()
@@ -110,9 +109,6 @@ class FullHDFilmizle : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val doc = app.get(data, headers = headers()).document
-
-        // Yalnızca gerçekten HTML'de bulunan embed URL'lerini kullan.
-        // Sabit film URL'si veya tahmini endpoint yok.
         val embeds = linkedSetOf<String>()
 
         doc.select("iframe[src], iframe[data-src]").forEach { frame ->
@@ -122,7 +118,8 @@ class FullHDFilmizle : MainAPI() {
         }
 
         val html = doc.html()
-        Regex("""https?://(?:www\.)?(?:vidmixi\.com|rapidvid\.(?:org|net))/[^"'\\\s<]+""",
+        Regex(
+            """https?://(?:www\.)?(?:vidmixi\.com|rapidvid\.(?:org|net))/[^"'\\\s<]+""",
             RegexOption.IGNORE_CASE
         ).findAll(html).forEach { embeds += it.value.replace("\\/", "/") }
 
