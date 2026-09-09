@@ -1,9 +1,7 @@
 package com.keyiflerolsun
 
-import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.lagradost.cloudstream3.network.WebViewResolver
 import org.jsoup.nodes.Element
 
 class FullHDFilmizle : MainAPI() {
@@ -90,11 +88,6 @@ class FullHDFilmizle : MainAPI() {
         val year = Regex("""\((\d{4})\)""")
             .find(doc.title())?.groupValues?.getOrNull(1)?.toIntOrNull()
 
-        val face = doc.selectFirst(".vp-face")
-        val srcId = face?.attr("data-src-id").orEmpty()
-        val srcToken = face?.attr("data-src-token").orEmpty()
-        Log.i("FHD_REPO", "DETAIL srcId=$srcId tokenPresent=${srcToken.isNotBlank()}")
-
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster?.let(::fixUrl)
             this.backgroundPosterUrl = backdrop?.let(::fixUrl)
@@ -109,119 +102,35 @@ class FullHDFilmizle : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val doc = app.get(data, headers = headers()).document
-        var emitted = false
-
-        // 1) Sayfada doğrudan görünen embed varsa mevcut extractor zincirini koru.
-        val embeds = linkedSetOf<String>()
-
-        doc.select("iframe[src], iframe[data-src]").forEach { frame ->
-            listOf(frame.attr("src"), frame.attr("data-src"))
-                .filter { it.isNotBlank() }
-                .mapTo(embeds) { fixUrl(it) }
-        }
-
-        val html = doc.html()
-        Regex(
-            """https?://(?:www\.)?(?:vidmixi\.com|rapidvid\.(?:org|net))/[^"'\\\s<]+""",
-            RegexOption.IGNORE_CASE
-        ).findAll(html).forEach {
-            embeds += it.value.replace("\\/", "/")
-        }
-
-        Log.i("FHD_REPO", "LOAD_LINKS directEmbeds=${embeds.size} $embeds")
-
-        embeds.forEach { embed ->
-            loadExtractor(embed, data, subtitleCallback) { link ->
-                emitted = true
-                callback(link)
+        /*
+         * Bu provider artık yayın çözümlemez.
+         * Katalog + arama + poster + detay verisini verir.
+         *
+         * Play aşamasında gerçek detail URL'yi uygulamaya geri yollar.
+         * X-PARS-WEBVIEW=1 işareti baba_burda NativePlayer tarafından
+         * MainActivity.resolveAndPlay akışına yönlendirilir.
+         *
+         * MainActivity gizli WebView:
+         * detail -> VidMixi -> /m3u/ -> Media3
+         */
+        callback(
+            newExtractorLink(
+                source = name,
+                name = "$name WebView",
+                url = data,
+                type = ExtractorLinkType.VIDEO
+            ) {
+                this.referer = data
+                this.quality = Qualities.Unknown.value
+                this.headers = mapOf(
+                    "User-Agent" to ua,
+                    "Referer" to data,
+                    "X-PARS-WEBVIEW" to "1",
+                    "X-PARS-DETAIL-REFERER" to data
+                )
             }
-        }
-
-        if (emitted) return true
-
-        // 2) Güncel akış: detail -> .vp-face click -> vidmixi.com/embed/<id>
-        // Logda embed isteği kesin görüldüğü için /list/ veya /m3u/ beklemiyoruz.
-        val playerButton = doc.selectFirst(".vp-face")
-        if (playerButton == null) {
-            Log.e("FHD_REPO", "VIDMIXI no .vp-face on detail page")
-            return false
-        }
-
-        val srcId = playerButton.attr("data-src-id")
-        val srcToken = playerButton.attr("data-src-token")
-        Log.i(
-            "FHD_REPO",
-            "VIDMIXI bootstrap srcId=$srcId tokenPresent=${srcToken.isNotBlank()}"
         )
 
-        val clickScript = """
-            (function() {
-                try {
-                    var button = document.querySelector('.vp-face');
-                    if (!button) return 'vp-face-not-found';
-                    button.click();
-                    return 'vp-face-clicked';
-                } catch (e) {
-                    return 'vp-face-error:' + String(e);
-                }
-            })();
-        """.trimIndent()
-
-        val embedRegex = Regex(
-            """^https://(?:www\.)?vidmixi\.com/embed/[^/?#]+(?:[?#].*)?$""",
-            RegexOption.IGNORE_CASE
-        )
-
-        val resolver = WebViewResolver(
-            interceptUrl = embedRegex,
-            userAgent = ua,
-            useOkhttp = false,
-            script = clickScript,
-            timeout = 12_000L
-        )
-
-        val (embedRequest, extraRequests) = resolver.resolveUsingWebView(
-            url = data,
-            referer = mainUrl,
-            headers = headers()
-        )
-
-        val request = embedRequest
-            ?: extraRequests.firstOrNull { req ->
-                embedRegex.containsMatchIn(req.url.toString())
-            }
-
-        if (request == null) {
-            Log.e("FHD_REPO", "VIDMIXI resolver failed: no /embed/ request captured")
-            return false
-        }
-
-        val embedUrl = request.url.toString()
-        Log.i("FHD_REPO", "VIDMIXI EMBED captured url=$embedUrl")
-
-        // Embed'i medya URL'si diye player'a vermiyoruz.
-        // CloudStream extractor zincirine verip gerçek oynatılabilir link(ler)i çıkartıyoruz.
-        loadExtractor(
-            embedUrl,
-            data,
-            subtitleCallback
-        ) { link ->
-            emitted = true
-            Log.i(
-                "FHD_REPO",
-                "VIDMIXI EXTRACTED name=${link.name} quality=${link.quality} url=${link.url}"
-            )
-            callback(link)
-        }
-
-        if (!emitted) {
-            Log.e(
-                "FHD_REPO",
-                "VIDMIXI embed captured but extractor returned 0 links: $embedUrl"
-            )
-        }
-
-        return emitted
+        return true
     }
 }
