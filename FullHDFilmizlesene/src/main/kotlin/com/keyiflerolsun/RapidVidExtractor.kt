@@ -1,5 +1,3 @@
-// ! Bu araç @keyiflerolsun tarafından | @KekikAkademi için yazılmıştır.
-
 package com.keyiflerolsun
 
 import android.util.Log
@@ -8,53 +6,98 @@ import com.lagradost.cloudstream3.utils.*
 
 open class RapidVid : ExtractorApi() {
     override val name            = "RapidVid"
-    override val mainUrl         = "https://rapidvid.net"
+    override val mainUrl         = "https://rapidvid.org"
     override val requiresReferer = true
 
-    override suspend fun getUrl(url: String, referer: String?, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit) {
-        val extRef   = referer ?: ""
-        val videoReq = app.get(url, referer = extRef).text
+    override suspend fun getUrl(
+        url: String,
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
+        val extRef = referer ?: "https://www.fullhdfilmizlesene.now/"
 
-        val subUrls = mutableSetOf<String>()
-        Regex("""captions","file":"([^"]+)","label":"([^"]+)"""").findAll(videoReq).forEach {
+        // Cloudflare cookie'leri (süresi dolunca güncellemek gerekir)
+        val cookies = mapOf(
+            "_di" to "WZZBHIIbs4KUvoH_6vIGJg",
+            "cf_clearance" to "uX0_EFEFOQNbMPKTNAnQ9sOvlUp34OoPf13Wv4VK_sA-1788962711-1.2.1.1-Qti63ZDsNOpZo9SGRE4fV3ZXNM8KotXdr8ydifhMWqsXYarkMSLllxAkh20sVE96eXj0w22aoWNY_sUEIqWhO3bGL6SNuo6_FTbpjXWYZ4F7cev7tZBkz74gZArCNxoBPFi2GcwWG4hM9FZIR4tnbEwS3gXBAgbYJI8YX25rcwHBnghx1tvvhGVUBRz9HtuRFZtugKV_PNl3DB3RD6WTvFIx_gbNK_VVtoautOF2r7JaQ3bTSYmn.POO102LKEcU9hSE95nU293aKdsBQzMnifB2c4xgmvM_O69CXpPhztAxcRleossOA6_f0Nq5YFBkscr3sO9VqggTOCOE_6cZFeQo3tQ8VaMyFue9uWxU_QU"
+        )
+
+        // Sayfayı cookie ile çek
+        val html = app.get(
+            url,
+            referer = extRef,
+            headers = mapOf("Cookie" to cookies.entries.joinToString("; ") { "${it.key}=${it.value}" })
+        ).text
+
+        // Altyazılar
+        Regex("""captions","file":"([^"]+)","label":"([^"]+)"""").findAll(html).forEach {
             val (subUrl, subLang) = it.destructured
-
-            if (subUrl in subUrls) return@forEach
-            subUrls.add(subUrl)
-
             subtitleCallback.invoke(
                 SubtitleFile(
-                    lang = subLang.replace("\\u0131", "ı").replace("\\u0130", "İ").replace("\\u00fc", "ü").replace("\\u00e7", "ç"),
-                    url  = fixUrl(subUrl.replace("\\", ""))
+                    lang = subLang.replace("\\u0131", "ı").replace("\\u0130", "İ"),
+                    url = subUrl.replace("\\", "")
                 )
             )
         }
 
-        var extractedValue = Regex("""file": "(.*)",""").find(videoReq)?.groupValues?.get(1)
-        val decoded: String?
+        // CDN linkini bul (imgscdn)
+        val cdnUrl = Regex("""(https://s\d+\.imgscdn\d+\.shop/[^"']+)""").find(html)?.groupValues?.get(1)
 
-        if (extractedValue != null) {
-            val bytes = extractedValue.split("\\x").filter { it.isNotEmpty() }.map { it.toInt(16).toByte() }.toByteArray()
-            decoded = String(bytes, Charsets.UTF_8)
-        } else {
-            val evalJWSsetup = Regex("""\};\s*(eval\(function[\s\S]*?)var played = \d+;""").find(videoReq)?.groupValues?.get(1) ?: throw ErrorLoadingException("File not found")
-            @Suppress("LocalVariableName")
-            val JWSsetup = getAndUnpack(getAndUnpack(evalJWSsetup)).replace("\\\\", "\\")
-            extractedValue = Regex("""file":"(.*)","label"""").find(JWSsetup)?.groupValues?.get(1)?.replace("\\\\x", "")
+        if (cdnUrl != null) {
+            // CDN'den m3u8'yi al
+            val cdnResponse = app.get(
+                cdnUrl,
+                referer = mainUrl,
+                headers = mapOf(
+                    "Origin" to mainUrl,
+                    "Referer" to mainUrl,
+                    "Cookie" to cookies.entries.joinToString("; ") { "${it.key}=${it.value}" }
+                )
+            ).text
 
-            val bytes = extractedValue?.chunked(2)?.map { it.toInt(16).toByte() }?.toByteArray()
-            decoded = bytes?.toString(Charsets.UTF_8) ?: throw ErrorLoadingException("File not found")
+            val finalM3u8 = Regex("""(https?://[^\s"']+\.m3u8[^\s"']*)""").find(cdnResponse)?.groupValues?.get(1)
+                ?: cdnUrl
+
+            Log.d("Kekik_RapidVid", "M3U8: $finalM3u8")
+
+            callback.invoke(
+                newExtractorLink(
+                    source = name,
+                    name = name,
+                    url = finalM3u8,
+                    type = ExtractorLinkType.M3U8
+                ) {
+                    this.referer = mainUrl
+                    this.headers = mapOf(
+                        "Origin" to mainUrl,
+                        "Referer" to mainUrl,
+                        "Cookie" to cookies.entries.joinToString("; ") { "${it.key}=${it.value}" }
+                    )
+                    this.quality = Qualities.Unknown.value
+                }
+            )
+            return
         }
-        Log.d("Kekik_${this.name}", "decoded » $decoded")
+
+        // Fallback
+        val videoUrl = Regex("""file":\s*"([^"]+\.m3u8[^"]*)""").find(html)?.groupValues?.get(1)
+            ?: Regex("""src":\s*"([^"]+\.m3u8[^"]*)""").find(html)?.groupValues?.get(1)
+            ?: throw ErrorLoadingException("Video kaynağı bulunamadı")
 
         callback.invoke(
             newExtractorLink(
-                source = this.name,
-                name   = this.name,
-                url    = decoded,
-                type   = ExtractorLinkType.M3U8
+                source = name,
+                name = name,
+                url = videoUrl,
+                type = ExtractorLinkType.M3U8
             ) {
-                this.referer = extRef
+                this.referer = mainUrl
+                this.headers = mapOf(
+                    "Origin" to mainUrl,
+                    "Referer" to mainUrl,
+                    "Cookie" to cookies.entries.joinToString("; ") { "${it.key}=${it.value}" }
+                )
                 this.quality = Qualities.Unknown.value
             }
         )
