@@ -16,12 +16,25 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 
 class FullHDFilmizlesene : MainAPI() {
-    override var mainUrl              = "https://fullhdfilmizle.now"
+    override var mainUrl              = "https://www.fullhdfilmizlesene.now"
     override var name                 = "FullHDFilmizlesene"
     override val hasMainPage          = true
     override var lang                 = "tr"
     override val hasQuickSearch       = false
     override val supportedTypes       = setOf(TvType.Movie)
+
+    private fun normalizeSiteUrl(url: String): String {
+        val value = url.trim()
+        if (value.isBlank()) return value
+
+        return value
+            .replace("https://fullhdfilmizle.now", mainUrl)
+            .replace("http://fullhdfilmizle.now", mainUrl)
+            .replace("https://www.fullhdfilmizle.now", mainUrl)
+            .replace("http://www.fullhdfilmizle.now", mainUrl)
+            .replace("https://fullhdfilmizlesene.now", mainUrl)
+            .replace("http://fullhdfilmizlesene.now", mainUrl)
+    }
 
     override val mainPage = mainPageOf(
         "${mainUrl}/"                  to "En Yeni Filmler",
@@ -40,10 +53,11 @@ class FullHDFilmizlesene : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val basePageUrl = normalizeSiteUrl(request.data)
         val pageUrl = when {
-            page <= 1 -> request.data
-            request.data.endsWith("/") -> "${request.data}sayfa/${page}"
-            else -> "${request.data}/sayfa/${page}"
+            page <= 1 -> basePageUrl
+            basePageUrl.endsWith("/") -> "${basePageUrl}sayfa/${page}"
+            else -> "${basePageUrl}/sayfa/${page}"
         }
 
         val document = app.get(pageUrl).document
@@ -88,7 +102,11 @@ class FullHDFilmizlesene : MainAPI() {
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
     override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url).document
+        val canonicalUrl = normalizeSiteUrl(url)
+        Log.d("FHD", "load url » $url")
+        Log.d("FHD", "load canonical » $canonicalUrl")
+
+        val document = app.get(canonicalUrl).document
 
         val title = document.selectFirst(".film-title-h1")
             ?.text()
@@ -148,10 +166,10 @@ class FullHDFilmizlesene : MainAPI() {
         val recommendations = document
             .select("article.movie-card")
             .mapNotNull { it.toSearchResult() }
-            .filter { it.url != url }
+            .filter { it.url != canonicalUrl }
             .distinctBy { it.url }
 
-        return newMovieLoadResponse(title, url, TvType.Movie, url) {
+        return newMovieLoadResponse(title, canonicalUrl, TvType.Movie, canonicalUrl) {
             this.posterUrl = poster
             this.year = year
             this.plot = description
@@ -329,7 +347,10 @@ class FullHDFilmizlesene : MainAPI() {
 
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         Log.d("FHD", "data » $data")
-        val document    = app.get(data).document
+        val canonicalData = normalizeSiteUrl(data)
+        Log.d("FHD", "canonical data » $canonicalData")
+
+        val document    = app.get(canonicalData).document
         val videoLinks = getVideoLinks(document)
         Log.d("FHD", "videoLinks » $videoLinks")
         if (videoLinks.isEmpty()) return false
