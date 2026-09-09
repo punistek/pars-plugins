@@ -181,28 +181,96 @@ class FullHDFilmizlesene : MainAPI() {
     }
 
     private fun getVideoLinks(document: Document): List<Map<String, String>> {
-        val scriptContent = document
-            .select("script")
-            .asSequence()
-            .map { script ->
-                script.data().ifBlank { script.html() }
+        // scx artik her zaman script.data() icinde yakalanmiyor.
+        // Once script bloklarini, sonra tum HTML'i kontrol ediyoruz.
+        val candidates = buildList {
+            document.select("script").forEach { script ->
+                val data = script.data()
+                val html = script.html()
+                val outer = script.outerHtml()
+
+                if (data.isNotBlank()) add(data)
+                if (html.isNotBlank() && html != data) add(html)
+                if (outer.isNotBlank()) add(outer)
             }
-            .firstOrNull {
-                it.contains("scx", ignoreCase = false) &&
-                        Regex("""(?:var\s+)?scx\s*=""").containsMatchIn(it)
+            add(document.html())
+        }
+
+        var scxData: String? = null
+
+        for (candidate in candidates) {
+            val startMatch = Regex(
+                """(?:var\s+|let\s+|const\s+)?scx\s*=\s*\{"""
+            ).find(candidate) ?: continue
+
+            // Regex ile {.*?} almak nested JSON'da erken kesilebiliyor.
+            // Bu nedenle ilk '{' konumundan dengeli parantez taramasi yap.
+            val objectStart = candidate.indexOf('{', startMatch.range.first)
+            if (objectStart < 0) continue
+
+            var depth = 0
+            var inString = false
+            var escaped = false
+            var quote = '\u0000'
+            var objectEnd = -1
+
+            for (i in objectStart until candidate.length) {
+                val c = candidate[i]
+
+                if (inString) {
+                    if (escaped) {
+                        escaped = false
+                        continue
+                    }
+                    if (c == '\\') {
+                        escaped = true
+                        continue
+                    }
+                    if (c == quote) {
+                        inString = false
+                    }
+                    continue
+                }
+
+                if (c == '"' || c == '\'') {
+                    inString = true
+                    quote = c
+                    continue
+                }
+
+                when (c) {
+                    '{' -> depth++
+                    '}' -> {
+                        depth--
+                        if (depth == 0) {
+                            objectEnd = i
+                            break
+                        }
+                    }
+                }
             }
-            ?.trim()
-            ?: return emptyList()
 
-        val scxData = Regex(
-            """(?:var\s+)?scx\s*=\s*(\{.*?\})\s*;""",
-            setOf(RegexOption.DOT_MATCHES_ALL)
-        ).find(scriptContent)?.groupValues?.getOrNull(1)
-            ?: return emptyList()
+            if (objectEnd > objectStart) {
+                scxData = candidate.substring(objectStart, objectEnd + 1)
+                break
+            }
+        }
 
-        val scxMap: SCXData = jacksonObjectMapper().readValue(scxData)
-        val keys             = listOf("atom", "advid", "advidprox", "proton", "fast", "fastly", "tr", "en")
+        if (scxData.isNullOrBlank()) {
+            Log.e("FHD", "SCX bulunamadi. scripts=${document.select("script").size}")
+            return emptyList()
+        }
 
+        Log.d("FHD", "SCX bulundu len=${scxData.length} data=${scxData.take(300)}")
+
+        val scxMap: SCXData = try {
+            jacksonObjectMapper().readValue(scxData)
+        } catch (e: Exception) {
+            Log.e("FHD", "SCX JSON parse hatasi: ${e.message}", e)
+            return emptyList()
+        }
+
+        val keys = listOf("atom", "advid", "advidprox", "proton", "fast", "fastly", "tr", "en")
         val linkList = mutableListOf<Map<String, String>>()
 
         for (key in keys) {
@@ -218,23 +286,44 @@ class FullHDFilmizlesene : MainAPI() {
                 else        -> null
             }
 
+            Log.d("FHD", "SCX key=$key tType=${t?.javaClass?.name ?: "null"} t=$t")
+
             when (t) {
                 is List<*> -> {
-                    val links = t.filterIsInstance<String>().map { link -> atob(rtt(link)) }
-                    linkList.add(mapOf(key to links.joinToString(",")))
+                    t.filterIsInstance<String>().forEachIndexed { index, encoded ->
+                        try {
+                            val decoded = atob(rtt(encoded)).trim()
+                            Log.d("FHD", "SCX decode key=$key index=$index -> $decoded")
+                            if (decoded.isNotBlank()) {
+                                linkList.add(mapOf(key to decoded))
+                            }
+                        } catch (e: Exception) {
+                            Log.e("FHD", "SCX decode hata key=$key index=$index: ${e.message}")
+                        }
+                    }
                 }
+
                 is Map<*, *> -> {
-                    val links = t.mapValues { (_, value) ->
-                        if (value is String) atob(rtt(value)) else ""
+                    t.forEach { (mapKey, value) ->
+                        if (value !is String) return@forEach
+
+                        try {
+                            val decoded = atob(rtt(value)).trim()
+                            Log.d("FHD", "SCX decode key=$key mapKey=$mapKey -> $decoded")
+                            if (decoded.isNotBlank()) {
+                                linkList.add(
+                                    mapOf((mapKey?.toString() ?: key) to decoded)
+                                )
+                            }
+                        } catch (e: Exception) {
+                            Log.e("FHD", "SCX map decode hata key=$key mapKey=$mapKey: ${e.message}")
+                        }
                     }
-                    val safeLinks = links.mapKeys { (key, _) ->
-                        key?.toString() ?: "Unknown"
-                    }
-                    linkList.add(safeLinks)
                 }
             }
         }
 
+        Log.d("FHD", "SCX final links=$linkList")
         return linkList
     }
 
@@ -248,7 +337,20 @@ class FullHDFilmizlesene : MainAPI() {
 
         for (videoMap in videoLinks) {
             for ((key, value) in videoMap) {
-                val videoUrl = fixUrlNull(value) ?: continue
+                // Cozulmus scx linki absolute URL ise fixUrlNull'a sokmak gereksiz.
+                // Relative link gelirse eski davranisi koru.
+                val videoUrl = if (
+                    value.startsWith("http://") ||
+                    value.startsWith("https://") ||
+                    value.startsWith("//")
+                ) {
+                    if (value.startsWith("//")) "https:$value" else value
+                } else {
+                    fixUrlNull(value) ?: continue
+                }
+
+                Log.d("FHD", "loadExtractor key=$key url=$videoUrl")
+
                 if (videoUrl.contains("turbo.imgz.me")) {
                     loadExtractor("${key}||${videoUrl}", "${mainUrl}/", subtitleCallback, callback)
                 } else {
