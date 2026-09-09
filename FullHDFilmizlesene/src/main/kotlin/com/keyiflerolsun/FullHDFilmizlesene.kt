@@ -119,11 +119,12 @@ class FullHDFilmizlesene : MainAPI() {
             .filter { it.isNotBlank() }
             .distinct()
 
-        val rating = document
+        val score = document
             .selectFirst(".ib-score")
             ?.text()
             ?.trim()
-            ?.toRatingInt()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { Score.from10(it) }
 
         val duration = Regex("""(\d{2,3})\s*(?:dk|dakika)""", RegexOption.IGNORE_CASE)
             .find(document.selectFirst(".film-facts")?.text().orEmpty())
@@ -155,7 +156,7 @@ class FullHDFilmizlesene : MainAPI() {
             this.year = year
             this.plot = description
             this.tags = tags
-            this.rating = rating
+            this.score = score
             this.duration = duration
             this.recommendations = recommendations
             addActors(actors)
