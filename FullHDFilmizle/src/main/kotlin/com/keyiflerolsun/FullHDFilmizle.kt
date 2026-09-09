@@ -112,11 +112,7 @@ class FullHDFilmizle : MainAPI() {
         val doc = app.get(data, headers = headers()).document
         var emitted = false
 
-        /*
-         * 1) Eski/doğrudan embed mantığını koru.
-         * Sayfada iframe/vidmixi/rapidvid doğrudan görünüyorsa önce normal
-         * CloudStream extractor zincirini deniyoruz.
-         */
+        // 1) Sayfada doğrudan görünen embed varsa mevcut extractor zincirini koru.
         val embeds = linkedSetOf<String>()
 
         doc.select("iframe[src], iframe[data-src]").forEach { frame ->
@@ -136,33 +132,16 @@ class FullHDFilmizle : MainAPI() {
         Log.i("FHD_REPO", "LOAD_LINKS directEmbeds=${embeds.size} $embeds")
 
         embeds.forEach { embed ->
-            loadExtractor(
-                embed,
-                data,
-                subtitleCallback
-            ) { link ->
+            loadExtractor(embed, data, subtitleCallback) { link ->
                 emitted = true
                 callback(link)
             }
         }
 
-        if (emitted) {
-            return true
-        }
+        if (emitted) return true
 
-        /*
-         * 2) Güncel FullHDFilmizle oynatıcı akışı:
-         *
-         * detail page -> .vp-face click -> site JS -> VidMixi embed
-         * -> https://vidmixi.com/list/<token>
-         *
-         * Token algoritmasını taklit etmiyoruz. Sitenin kendi JavaScript'i
-         * çalışıyor; CloudStream WebViewResolver sadece oluşan gerçek /list/
-         * HLS isteğini yakalıyor.
-         *
-         * Kullanıcının yakaladığı /list/ cevabı doğrudan #EXTM3U master
-         * playlist olduğundan player'a M3U8 olarak veriyoruz.
-         */
+        // 2) Güncel akış: detail -> .vp-face click -> vidmixi.com/embed/<id>
+        // Logda embed isteği kesin görüldüğü için /list/ veya /m3u/ beklemiyoruz.
         val playerButton = doc.selectFirst(".vp-face")
         if (playerButton == null) {
             Log.e("FHD_REPO", "VIDMIXI no .vp-face on detail page")
@@ -189,74 +168,60 @@ class FullHDFilmizle : MainAPI() {
             })();
         """.trimIndent()
 
-        val listRegex = Regex(
-            """^https://(?:www\.)?vidmixi\.com/list/.+""",
-            RegexOption.IGNORE_CASE
-        )
-
-        val m3uRegex = Regex(
-            """^https://(?:www\.)?vidmixi\.com/m3u/.+""",
+        val embedRegex = Regex(
+            """^https://(?:www\.)?vidmixi\.com/embed/[^/?#]+(?:[?#].*)?$""",
             RegexOption.IGNORE_CASE
         )
 
         val resolver = WebViewResolver(
-            interceptUrl = listRegex,
-            additionalUrls = listOf(m3uRegex),
+            interceptUrl = embedRegex,
             userAgent = ua,
             useOkhttp = false,
             script = clickScript,
-            timeout = 25_000L
+            timeout = 12_000L
         )
 
-        val (listRequest, extraRequests) = resolver.resolveUsingWebView(
+        val (embedRequest, extraRequests) = resolver.resolveUsingWebView(
             url = data,
             referer = mainUrl,
             headers = headers()
         )
 
-        val request = listRequest
+        val request = embedRequest
             ?: extraRequests.firstOrNull { req ->
-                listRegex.containsMatchIn(req.url.toString())
-            }
-            ?: extraRequests.firstOrNull { req ->
-                m3uRegex.containsMatchIn(req.url.toString())
+                embedRegex.containsMatchIn(req.url.toString())
             }
 
         if (request == null) {
-            Log.e(
-                "FHD_REPO",
-                "VIDMIXI resolver failed: no /list/ or /m3u/ request captured"
-            )
+            Log.e("FHD_REPO", "VIDMIXI resolver failed: no /embed/ request captured")
             return false
         }
 
-        val mediaUrl = request.url.toString()
-        val requestHeaders = request.headers.names()
-            .associateWith { key -> request.header(key).orEmpty() }
-            .filterValues { it.isNotBlank() }
+        val embedUrl = request.url.toString()
+        Log.i("FHD_REPO", "VIDMIXI EMBED captured url=$embedUrl")
 
-        val mediaReferer = request.header("Referer")
-            ?.takeIf { it.isNotBlank() }
-            ?: "https://vidmixi.com/"
+        // Embed'i medya URL'si diye player'a vermiyoruz.
+        // CloudStream extractor zincirine verip gerçek oynatılabilir link(ler)i çıkartıyoruz.
+        loadExtractor(
+            embedUrl,
+            data,
+            subtitleCallback
+        ) { link ->
+            emitted = true
+            Log.i(
+                "FHD_REPO",
+                "VIDMIXI EXTRACTED name=${link.name} quality=${link.quality} url=${link.url}"
+            )
+            callback(link)
+        }
 
-        Log.i(
-            "FHD_REPO",
-            "VIDMIXI HLS captured url=$mediaUrl referer=$mediaReferer"
-        )
+        if (!emitted) {
+            Log.e(
+                "FHD_REPO",
+                "VIDMIXI embed captured but extractor returned 0 links: $embedUrl"
+            )
+        }
 
-        callback.invoke(
-            newExtractorLink(
-                source = this.name,
-                name = "VidMixi",
-                url = mediaUrl,
-                type = ExtractorLinkType.M3U8
-            ) {
-                this.referer = mediaReferer
-                this.headers = requestHeaders
-                this.quality = Qualities.Unknown.value
-            }
-        )
-
-        return true
+        return emitted
     }
 }
