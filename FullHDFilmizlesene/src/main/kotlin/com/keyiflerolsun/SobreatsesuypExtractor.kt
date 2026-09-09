@@ -17,7 +17,7 @@ open class Sobreatsesuyp : ExtractorApi() {
 
         val videoReq = app.get(url, referer = extRef).text
 
-        val file     = Regex("""file":"([^"]+)""").find(videoReq)?.groupValues?.get(1) ?: throw ErrorLoadingException("File not found")
+        val file     = Regex("""file":"([^"]+)"""").find(videoReq)?.groupValues?.get(1) ?: throw ErrorLoadingException("File not found")
         val postLink = "${mainUrl}/" + file.replace("\\", "")
         val rawList  = app.post(postLink, referer = extRef).parsedSafe<List<Any>>() ?: throw ErrorLoadingException("Post link not found")
 
@@ -42,8 +42,8 @@ open class Sobreatsesuyp : ExtractorApi() {
                     url    = videoData,
                     type   = INFER_TYPE
                 ) {
-                    referer = extRef
-                    quality = Qualities.Unknown.value
+                    this.referer = extRef
+                    this.quality = Qualities.Unknown.value
                 }
             )
         }
