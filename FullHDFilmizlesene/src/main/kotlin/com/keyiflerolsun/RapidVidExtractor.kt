@@ -14,7 +14,11 @@ package com.keyiflerolsun
 import android.util.Base64
 import android.util.Log
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.network.CloudflareKiller
 import com.lagradost.cloudstream3.utils.*
+import okhttp3.Interceptor
+import okhttp3.Response
+import org.jsoup.Jsoup
 import org.json.JSONObject
 
 open class RapidVid : ExtractorApi() {
@@ -22,6 +26,36 @@ open class RapidVid : ExtractorApi() {
     override val name = "RapidVid"
     override val mainUrl = "https://rapidvid.org"
     override val requiresReferer = true
+
+    // CloudStream host APK'nin kendi Cloudflare çözümünü kullan.
+    // Challenge gövdesi gelirse CloudflareKiller normal CloudStream akışını devralır.
+    private val cloudflareKiller by lazy { CloudflareKiller() }
+    private val cloudflareInterceptor by lazy { RapidVidCloudflareInterceptor(cloudflareKiller) }
+
+    private class RapidVidCloudflareInterceptor(
+        private val cloudflareKiller: CloudflareKiller
+    ) : Interceptor {
+        override fun intercept(chain: Interceptor.Chain): Response {
+            val request = chain.request()
+            val response = chain.proceed(request)
+            val body = response.peekBody(1024L * 1024L).string()
+            val document = Jsoup.parse(body)
+
+            val challenged =
+                document.html().contains("Just a moment", ignoreCase = true) ||
+                    body.contains("cf-chl-", ignoreCase = true) ||
+                    body.contains("/cdn-cgi/challenge-platform/", ignoreCase = true) ||
+                    body.contains("Enable JavaScript and cookies to continue", ignoreCase = true)
+
+            if (challenged) {
+                Log.w("Kekik_RapidVid", "Cloudflare challenge -> CloudflareKiller")
+                response.close()
+                return cloudflareKiller.intercept(chain)
+            }
+
+            return response
+        }
+    }
 
     override suspend fun getUrl(
         url: String,
@@ -58,7 +92,8 @@ open class RapidVid : ExtractorApi() {
                 "Pragma" to "no-cache",
                 "Upgrade-Insecure-Requests" to "1",
                 "User-Agent" to DESKTOP_UA
-            )
+            ),
+            interceptor = cloudflareInterceptor
         )
 
         val html = response.text
