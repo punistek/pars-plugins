@@ -37,19 +37,19 @@ class FullHDFilmizlesene : MainAPI() {
     }
 
     override val mainPage = mainPageOf(
-        "${mainUrl}/"                                      to "En Yeni Filmler",
-        "${mainUrl}/filmizle/aksiyon-filmleri"            to "Aksiyon",
-        "${mainUrl}/filmizle/dram-filmler-izle"           to "Dram",
-        "${mainUrl}/filmizle/gerilim-filmleri"            to "Gerilim",
-        "${mainUrl}/filmizle/komedi-filmleri"             to "Komedi",
-        "${mainUrl}/filmizle/korku-filmleri"              to "Korku",
-        "${mainUrl}/filmizle/macera-filmleri"             to "Macera",
-        "${mainUrl}/filmizle/fantastik-filmler"           to "Fantastik",
-        "${mainUrl}/filmizle/bilim-kurgu-filmleri"        to "Bilim Kurgu",
-        "${mainUrl}/filmizle/gizem-filmleri"              to "Gizem",
-        "${mainUrl}/filmizle/romantik-filmler"            to "Romantik",
-        "${mainUrl}/filmizle/suc-filmleri"                to "Suç",
-        "${mainUrl}/filmizle/savas-filmleri"              to "Savaş",
+        "${mainUrl}/"                  to "En Yeni Filmler",
+        "${mainUrl}/tur/aksiyon"       to "Aksiyon",
+        "${mainUrl}/tur/dram"          to "Dram",
+        "${mainUrl}/tur/gerilim"       to "Gerilim",
+        "${mainUrl}/tur/komedi"        to "Komedi",
+        "${mainUrl}/tur/korku"         to "Korku",
+        "${mainUrl}/tur/macera"        to "Macera",
+        "${mainUrl}/tur/fantastik"     to "Fantastik",
+        "${mainUrl}/tur/bilim-kurgu"   to "Bilim Kurgu",
+        "${mainUrl}/tur/gizem"         to "Gizem",
+        "${mainUrl}/tur/romantik"      to "Romantik",
+        "${mainUrl}/tur/suc"           to "Suç",
+        "${mainUrl}/tur/savas"         to "Savaş",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -61,7 +61,7 @@ class FullHDFilmizlesene : MainAPI() {
         }
 
         val document = app.get(pageUrl).document
-        val home = document.select(".list .film").mapNotNull { it.toSearchResult() }
+        val home = document.select("article.movie-card").mapNotNull { it.toSearchResult() }
 
         Log.d("FHD", "MAIN page=$page url=$pageUrl cards=${home.size}")
         return newHomePageResponse(request.name, home)
@@ -73,13 +73,12 @@ class FullHDFilmizlesene : MainAPI() {
             ?: return null
 
         val href = fixUrlNull(
-            this.selectFirst("a.tt[href]")?.attr("href")
+            this.selectFirst("a.mc-link")?.attr("href")
                 ?.takeIf { it.isNotBlank() }
-                ?: this.selectFirst("a[href]")?.attr("href")
+                ?: this.selectFirst("a")?.attr("href")
         ) ?: return null
 
-        val image = this.selectFirst("img.mafis")
-            ?: this.selectFirst("img.afis")
+        val image = this.selectFirst("img.mc-afis")
             ?: this.selectFirst("img")
 
         val posterUrl = fixUrlNull(
@@ -97,7 +96,7 @@ class FullHDFilmizlesene : MainAPI() {
         val searchUrl = "${mainUrl}/arama?q=${java.net.URLEncoder.encode(query, "UTF-8")}&page=1"
         val document = app.get(searchUrl).document
 
-        return document.select(".list .film").mapNotNull { it.toSearchResult() }
+        return document.select("article.movie-card").mapNotNull { it.toSearchResult() }
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
@@ -109,92 +108,47 @@ class FullHDFilmizlesene : MainAPI() {
 
         val document = app.get(canonicalUrl).document
 
-        // Site detail HTML'i eski ".film-title-h1" yapısından değişti.
-        // Başlığı tek bir kırılgan selector'a bağlama; gerçek film sayfasındaki
-        // H1 ve standart OpenGraph/HTML title alanlarını fallback olarak kullan.
-        val titleCandidates = listOfNotNull(
-            document.selectFirst(".film-title-h1")?.text(),
-            document.selectFirst("h1")?.text(),
-            document.selectFirst("meta[property=og:title]")?.attr("content"),
-            document.selectFirst("meta[name=twitter:title]")?.attr("content"),
-            document.title(),
-        ).map { it.trim() }.filter { it.isNotBlank() }
-
-        val title = titleCandidates.firstOrNull()
-            ?.replace(Regex("""\s*(?:[-|]\s*)?(?:Full\s*HD\s*)?Film\s*(?:izle|izlesene).*$""", RegexOption.IGNORE_CASE), "")
+        val title = document.selectFirst(".film-title-h1")
+            ?.text()
             ?.trim()
             ?.takeIf { it.isNotBlank() }
-            ?: run {
-                Log.e("FHD", "load title bulunamadı url=$canonicalUrl h1=${document.selectFirst("h1")?.text()} htmlTitle=${document.title()}")
-                return null
-            }
-
-        val posterElement = document.selectFirst(".detail-poster img")
-            ?: document.selectFirst(".poster img")
-            ?: document.selectFirst(".film-afis img")
-            ?: document.selectFirst("article img")
-            ?: document.selectFirst("main img")
+            ?: return null
 
         val poster = fixUrlNull(
-            document.selectFirst("meta[property=og:image]")?.attr("content")?.takeIf { it.isNotBlank() }
-                ?: posterElement?.attr("data-src")?.takeIf { it.isNotBlank() }
-                ?: posterElement?.attr("data-original")?.takeIf { it.isNotBlank() }
-                ?: posterElement?.attr("src")?.takeIf { it.isNotBlank() }
+            document.selectFirst(".detail-poster img")
+                ?.attr("src")
+                ?.takeIf { it.isNotBlank() }
         )
 
-        val pageText = document.body()?.text().orEmpty()
-
         val year = document
-            .selectFirst("a[href*='/yil/'], a[href*='/year/']")
+            .selectFirst(".film-facts a[href^='/yil/']")
             ?.text()
             ?.trim()
             ?.toIntOrNull()
-            ?: Regex("""\b(19\d{2}|20\d{2})\b""")
-                .find(pageText)
-                ?.groupValues
-                ?.getOrNull(1)
-                ?.toIntOrNull()
 
-        val description = listOfNotNull(
-            document.selectFirst(".detail-synopsis")?.text(),
-            document.selectFirst(".film-aciklama")?.text(),
-            document.selectFirst(".description")?.text(),
-            document.selectFirst("meta[name=description]")?.attr("content"),
-            document.selectFirst("meta[property=og:description]")?.attr("content"),
-        ).map { it.trim() }.firstOrNull { it.isNotBlank() }
+        val description = document
+            .selectFirst(".detail-synopsis")
+            ?.text()
+            ?.trim()
 
         val tags = document
-            .select("a[href*='/filmizle/'], a[href*='/tur/']")
+            .select(".film-facts a[href^='/tur/']")
             .map { it.text().trim() }
-            .filter {
-                it.isNotBlank() &&
-                    !it.equals("Film izle", ignoreCase = true) &&
-                    it.length <= 40
-            }
+            .filter { it.isNotBlank() }
             .distinct()
-            .take(12)
 
-        val scoreText = listOfNotNull(
-            document.selectFirst(".ib-score")?.text(),
-            document.selectFirst("[class*=imdb]")?.text(),
-            document.selectFirst("[class*=rating]")?.text(),
-        ).joinToString(" ")
-
-        val score = Regex("""\b(?:10(?:\.0)?|[0-9](?:\.[0-9])?)\b""")
-            .find(scoreText.replace(',', '.'))
-            ?.value
+        val score = document
+            .selectFirst(".ib-score")
+            ?.text()
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
             ?.let { Score.from10(it) }
 
         val duration = Regex("""(\d{2,3})\s*(?:dk|dakika)""", RegexOption.IGNORE_CASE)
-            .find(pageText)
+            .find(document.selectFirst(".film-facts")?.text().orEmpty())
             ?.groupValues
             ?.getOrNull(1)
             ?.toIntOrNull()
-
-        Log.d(
-            "FHD",
-            "load parsed title=$title poster=${poster != null} year=$year duration=$duration tags=${tags.size}"
-        )
 
         val trailer = Regex(
             """"(?:embedUrl|trailer)"\s*:\s*"([^"]+)"""",
@@ -210,7 +164,7 @@ class FullHDFilmizlesene : MainAPI() {
             .map { Actor(it) }
 
         val recommendations = document
-            .select(".list .film")
+            .select("article.movie-card")
             .mapNotNull { it.toSearchResult() }
             .filter { it.url != canonicalUrl }
             .distinctBy { it.url }
@@ -417,6 +371,35 @@ class FullHDFilmizlesene : MainAPI() {
                 }
 
                 Log.d("FHD", "loadExtractor key=$key url=$videoUrl")
+
+                /*
+                 * RapidVid /vx sayfasini HTTP extractor ile cozmeye calismiyoruz.
+                 * PARS'in MainActivity icindeki gizli Chromium resolver'ina teslim
+                 * ediyoruz. Boylece SCX ile bulunan gercek /vx adresi kaybolmadan
+                 * WebView tarafinda acilir; RapidVid'in kendi player'i HLS master
+                 * istegini olusturdugunda PARS_RESOLVER onu yakalar.
+                 */
+                if (videoUrl.contains("rapidvid.org", ignoreCase = true)) {
+                    Log.d("FHD", "RAPIDVID_WEB_HANDOFF url=$videoUrl detail=$canonicalData")
+
+                    callback.invoke(
+                        newExtractorLink(
+                            source = "RapidVid Web",
+                            name = "RapidVid Web",
+                            url = videoUrl,
+                            type = ExtractorLinkType.M3U8
+                        ) {
+                            this.referer = canonicalData
+                            this.headers = mapOf(
+                                "X-PARS-WEBVIEW" to "1",
+                                "X-PARS-DETAIL-REFERER" to canonicalData,
+                                "Referer" to canonicalData
+                            )
+                            this.quality = Qualities.Unknown.value
+                        }
+                    )
+                    continue
+                }
 
                 if (videoUrl.contains("turbo.imgz.me")) {
                     loadExtractor("${key}||${videoUrl}", "${mainUrl}/", subtitleCallback, callback)
