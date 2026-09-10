@@ -1,0 +1,14 @@
+{
+  "name": "PARS Plugin Deposu",
+  "description": "PARS CloudStream Plugin Repository",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/punistek/pars-plugins/refs/heads/builds/plugins.json",
+    "https://raw.githubusercontent.com/Saloo1575/SalooRepo/builds/plugins.json",
+    "https://raw.githubusercontent.com/Kraptor123/cs-kraptor/builds/plugins.json",
+    "https://raw.githubusercontent.com/Kraptor123/Cs-Karma/builds/plugins.json",
+    "https://raw.githubusercontent.com/admknight/CloudstreamExtensions/builds/plugins.json"
+  ],
+  "metadataUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/refs/heads/builds/plugin-meta.json",
+  "noticesUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/refs/heads/builds/notices.json"
+}

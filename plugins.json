@@ -1,0 +1,1131 @@
+[
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=720izle.com&sz=%size%",
+        "fileHash": "sha256-20397915bba80e7f79388d4173ba235ff1802cff1f6cff2773cfd2e30100a570",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 15697,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "720Izle",
+        "description": "720izle",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/720Izle.cs3",
+        "name": "720Izle"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=666filmizle.site&sz=%size%",
+        "fileHash": "sha256-4521b809606138684aeb21072bbd20f3245711711bc9ca0c8df1cf405ac8c769",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 12256,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "patr0n"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "AltiYuzAltmisAltiFilmIzle",
+        "description": "666FilmIzle - T\u00fcrk\u00e7e Dublaj ve Altyaz\u0131l\u0131 Film izle.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/AltiYuzAltmisAltiFilmIzle.cs3",
+        "name": "AltiYuzAltmisAltiFilmIzle"
+    },
+    {
+        "iconUrl": "https://animecix.tv/favicon.ico",
+        "fileHash": "sha256-6c545755ec559b1c135346232c45c7adffa4e035cf893e60b2573214796dfd1f",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 26224,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun",
+            "inatchii",
+            "JustRelaxable"
+        ],
+        "tvTypes": [
+            "Anime"
+        ],
+        "version": 21,
+        "internalName": "AnimeciX",
+        "description": "AnimeciX, animeleri ke\u015ffedebilece\u011finiz ve animeler hakk\u0131nda her \u015feyi \u00f6\u011frenebilece\u011finiz bir payla\u015f\u0131m platformudur.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/AnimeciX.cs3",
+        "name": "AnimeciX"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/ArdaSpor.png",
+        "fileHash": "sha256-34beadc0eb9dafdb0a789a5d2e2c10cfbc6440a097b9f51d91d47035365f8a2a",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 57473,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 5,
+        "internalName": "ArdaSpor",
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/ArdaSpor.cs3",
+        "name": "ArdaSpor"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=asyaanimeleri.top&sz=%size%",
+        "fileHash": "sha256-9b5db41942c832d40b46f30b742426de1b3c49f6662b6a1784e6250fa5dfe43b",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 13920,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "patr0n"
+        ],
+        "tvTypes": [
+            "Anime"
+        ],
+        "version": 1,
+        "internalName": "AsyaAnimeleri",
+        "description": "Asya Animeleri - Anime izle, Donghua izle, T\u00fcrk\u00e7e Altyaz\u0131l\u0131 Anime izle.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/AsyaAnimeleri.cs3",
+        "name": "AsyaAnimeleri"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=belgeselx.com&sz=%size%",
+        "fileHash": "sha256-006550484bd4786ec4e7093e4bd0e9e6324cffedb30e9e9efc3bbb6858ac37e6",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 31580,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun",
+            "JustRelaxable"
+        ],
+        "tvTypes": [
+            "Documentary"
+        ],
+        "version": 17,
+        "internalName": "BelgeselX",
+        "description": "En yeni belgeseller, t\u00fcrk\u00e7e altyaz\u0131l\u0131 yada dublaj olarak 1080p kalitesinde HD belgesel izle.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/BelgeselX.cs3",
+        "name": "BelgeselX"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/BeyazElma.png",
+        "fileHash": "sha256-4b91c8c3a3fcfdb5eb056bd56cb1847951ab232f51feb4dd41b23e68418a6f38",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 79267,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 5,
+        "internalName": "BeyazElma",
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/BeyazElma.cs3",
+        "name": "BeyazElma"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
+        "fileHash": "sha256-d394f69baad0442a682f30d3f000f63c5602e5b336c694e9644d3d36be56c7f3",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 20546,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Adippe",
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 10,
+        "internalName": "CanliTV",
+        "description": "Canl\u0131 TV",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/CanliTV.cs3",
+        "name": "CanliTV"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=cizgimax.online&sz=%size%",
+        "fileHash": "sha256-acb9fba11fafc46158f7871fd0debed59ef20eef9cc623a6b5526b47a3c4987a",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 35498,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Cartoon",
+            "Anime",
+            "Movie"
+        ],
+        "version": 16,
+        "internalName": "CizgiMax",
+        "description": "\u00c7izgiMax ile \u00c7izgi Film izlemek art\u0131k daha kolay, donmadan full hd ve reklams\u0131z bir sitedir, i\u00e7erisinde 700 den fazla \u00e7izgi film olan, Bu site bu i\u015fi profesyonelce yap\u0131yor.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/CizgiMax.cs3",
+        "name": "CizgiMax"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/Crex.png",
+        "fileHash": "sha256-7d5e48f9090cb82108324fb10aaa231ba6adbf4a3ed1e8c52de3526d3acd1e88",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 58184,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 4,
+        "internalName": "Crex",
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/Crex.cs3",
+        "name": "Crex"
+    },
+    {
+        "iconUrl": "https://www.ddizi.im/images/logo.png",
+        "fileHash": "sha256-995641b561aed37a45e15c1f03ff14908f6feeb03aac946ee0df563f7ea46c67",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 27387,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 2,
+        "internalName": "Ddizi",
+        "description": "Ddizi.im - T\u00fcrk ve yabanc\u0131 dizi kayna\u011f\u0131",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/Ddizi.cs3",
+        "name": "Ddizi"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.dizibox.live&sz=%size%",
+        "fileHash": "sha256-e684d9a34bdfaf6cfc442c613ece6cdc02aac0b37cf91581e2d86e9d41d061bc",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 22931,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 23,
+        "internalName": "DiziBox",
+        "description": "Yabanc\u0131 Dizi izle, T\u00fcm yabanc\u0131 dizilerin yeni ve eski sezonlar\u0131n\u0131 full hd izleyebilece\u011finiz elit site.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/DiziBox.cs3",
+        "name": "DiziBox"
+    },
+    {
+        "iconUrl": "https://dizifilmizle.to/favicon.ico",
+        "fileHash": "sha256-ae93b2c3cee461d54ff0c527ea88e2ed15e28975e94efb282d22085b0cfec4db",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 36462,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 2,
+        "internalName": "DiziFilmizle",
+        "description": "DiziFilmizle.to - Yabanc\u0131 diziler",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/DiziFilmizle.cs3",
+        "name": "DiziFilmizle"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=https://dizikorea.vip&sz=%size%",
+        "fileHash": "sha256-26c6e990cfb3e8fd0f6543e6e60ccc725c5bc56b48075b19ef2dc7c7afcb7d39",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 23577,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "AsianDrama"
+        ],
+        "version": 41,
+        "internalName": "DiziKorea",
+        "description": "En G\u00fcncel Kore Dizileri izleme Sitesi",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/DiziKorea.cs3",
+        "name": "DiziKorea"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=dizilla.club&sz=%size%",
+        "fileHash": "sha256-a5dfee82582394d0e3d2b12ee359d6c61fce25d5bee7cec096fb3f6be752c4a0",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 36829,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 92,
+        "internalName": "Dizilla",
+        "description": "Dizilla t\u00fcm yabanc\u0131 dizileri \u00fccretsiz olarak T\u00fcrk\u00e7e Dublaj ve altyaz\u0131l\u0131 se\u00e7enekleri ile 1080P kalite izleyebilece\u011finiz yeni nesil yabanc\u0131 dizi izleme siteniz.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/Dizilla.cs3",
+        "name": "Dizilla"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.dizimom.plus&sz=%size%",
+        "fileHash": "sha256-2e9a08ace35a60abb2c79bfc47d07d51d9eb2585c76995facc036d6ae9883b3a",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 34970,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 56,
+        "internalName": "DiziMom",
+        "description": "Binlerce yerli yabanc\u0131 dizi ar\u015fivi, t\u00fcm sezonlar, kesintisiz b\u00f6l\u00fcmler. Sadece dizi izle, Dizimom heryerde seninle!",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/DiziMom.cs3",
+        "name": "DiziMom"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=https://dizipal683.com&sz=%size%",
+        "fileHash": "sha256-697f2cfcdac2ad9167dd7c71d9c8e03f9b4636a5e650aee75ac7011fe51be4b5",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 25842,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun",
+            "muratcesmecioglu"
+        ],
+        "tvTypes": [
+            "TvSeries",
+            "Movie"
+        ],
+        "version": 47,
+        "internalName": "DiziPal",
+        "description": "en yeni dizileri g\u00fcvenli ve h\u0131zl\u0131 \u015fekilde sunar.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/DiziPal.cs3",
+        "name": "DiziPal"
+    },
+    {
+        "iconUrl": "https://cdn.diziyou.one/wp-content/uploads/2020/04/diziyou-favicon.png",
+        "fileHash": "sha256-17de29c24821881f11bf2d53f5b5b3c32eb5f415843c4a49bced843045ef9803",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 18130,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 25,
+        "internalName": "DiziYou",
+        "description": "Diziyou en kaliteli T\u00fcrk\u00e7e dublaj ve altyaz\u0131l\u0131 yabanc\u0131 dizi izleme sitesidir. G\u00fcncel ve efsanevi dizileri 1080p Full HD kalitede izlemek i\u00e7in hemen t\u0131kla!",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/DiziYou.cs3",
+        "name": "DiziYou"
+    },
+    {
+        "iconUrl": "https://filmizlehell.com/favicon.ico",
+        "fileHash": "sha256-ceb9a0269fd74af7a7e1cf40f4decd74b72e50fd766f1e4e9752f0e7aa55e101",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 18362,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "FilmizleHell",
+        "description": "FilmizleHell film kayna\u011f\u0131",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/FilmizleHell.cs3",
+        "name": "FilmizleHell"
+    },
+    {
+        "fileHash": "sha256-e462db23b67ae5aa0a665a8b2e8b24fb87d23e666420992a275dbceb2c6e11e9",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 32702,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "SiteRepoBuilder"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "FilmMakinesi",
+        "description": "Site Repo Builder tarafindan uretilen provider taslagi",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/FilmMakinesi.cs3",
+        "name": "FilmMakinesi"
+    },
+    {
+        "iconUrl": "https://www.filmmodu.one/icon/favicon.ico",
+        "fileHash": "sha256-4d58f99b0df2094115070e8183cd44404ca86113c88edfa0b7d7e9b4c6b9884c",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 16666,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 19,
+        "internalName": "FilmModu",
+        "description": "Film modun geldiyse y\u00fcksek kalitede en yeni filmleri izle, 1080p izleyebilece\u011finiz reklamsiz film sitesi.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/FilmModu.cs3",
+        "name": "FilmModu"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilm.us&sz=%size%",
+        "fileHash": "sha256-a49f5088973f6972f23c1ca55dd32475ea602edda2aaaa2182bbf25f21bea7c9",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 28165,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 36,
+        "internalName": "FullHDFilm",
+        "description": "Fullhdfilm ile en yeni vizyon filmler Full HD ve kesintisiz film sizlerle. \u00d6zg\u00fcn film ar\u015fivimizle en \u00fcst\u00fcn kaliteli film izle keyfini sunuyoruz.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/FullHDFilm.cs3",
+        "name": "FullHDFilm"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=fullhdfilmizle.now&sz=%size%",
+        "fileHash": "sha256-ce1b02b6ed6d988962aee1ea82a734246472224545b77c7688bf9ad47c08cef7",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 11658,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "FullHDFilmizle",
+        "description": "FullHDFilmizle provider",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/FullHDFilmizle.cs3",
+        "name": "FullHDFilmizle"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.fullhdfilmizlesene.de&sz=%size%",
+        "fileHash": "sha256-805cdd77953bce6fa97be7c064fa6e008c4b21658021928a3b849f02168e15a6",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 42257,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 33,
+        "internalName": "FullHDFilmizlesene",
+        "description": "Sinema zevkini evinize kadar getirdik. T\u00fcrkiye'nin lider Film sitesinde, en yeni filmleri Full HD izleyin.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/FullHDFilmizlesene.cs3",
+        "name": "FullHDFilmizlesene"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmcehennemi.com&sz=%size%",
+        "fileHash": "sha256-f626f37823d5c4551e4bf5894cc6984903c76e4438f5fed441d73e842a62ba45",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 32721,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "hexated",
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 48,
+        "internalName": "HDFilmCehennemi",
+        "description": "T\u00fcrkiye'nin en h\u0131zl\u0131 hd film izleme sitesi",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/HDFilmCehennemi.cs3",
+        "name": "HDFilmCehennemi"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/InatBox.webp",
+        "fileHash": "sha256-6ab5da3224f108cc29dcd170f7d3cc2876d71eb65125c211a584b0d79ae1ed21",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 92690,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            "Wiojelt",
+            "murattunc05",
+            "feroxx",
+            "JustRelaxable",
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 3,
+        "internalName": "InatBox",
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/InatBox.cs3",
+        "name": "InatBox"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/InatTV.png",
+        "fileHash": "sha256-edb9c1855e81dc3e9515a171268f9cfc3dc986768b224ea269aefffbc931060a",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 55231,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 4,
+        "internalName": "InatTV",
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/InatTV.cs3",
+        "name": "InatTV"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=archive.org&sz=%size%",
+        "jarFileSize": 67968,
+        "fileHash": "sha256-7a7378707af99bc36499da5b5e7492ee6ad94a8f6849b47a33559e37c5ed463f",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 16005,
+        "status": 1,
+        "authors": [
+            "Luna712"
+        ],
+        "tvTypes": [
+            "Others"
+        ],
+        "version": 1,
+        "internalName": "InternetArchiveProvider",
+        "jarUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/InternetArchiveProvider.jar",
+        "description": "Watch content from the Internet Archive at archive.org",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/InternetArchiveProvider.cs3",
+        "name": "InternetArchiveProvider",
+        "jarHash": "sha256-ea11ea338e47cb990f4b51dcf56442c2148d7d7f9963a1e8f971247e07fda164"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/InterSporTV.png",
+        "fileHash": "sha256-bd46b84d958787588974cf0851f02fbf12de3a6a4ab365f05f6f03de64a6b159",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 79267,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 5,
+        "internalName": "InterSporTV",
+        "description": "\ud83d\udd34 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/InterSporTV.cs3",
+        "name": "InterSporTV"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=iptv-org.github.io&sz=%size%",
+        "fileHash": "sha256-2456f0e5eae5178e890dc8f8761592854253cc44b85db97140b098de0779649c",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 19310,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "SALOO"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 1,
+        "internalName": "IPTVOrgTR",
+        "description": "IPTV-org T\u00fcrkiye canl\u0131 TV kanallar\u0131",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/IPTVOrgTR.cs3",
+        "name": "IPTVOrgTR"
+    },
+    {
+        "iconUrl": "https://www.ardaspor30.top/assets/img/55557ardafav.png",
+        "fileHash": "sha256-9e5e8194bf48adcb1769ee10cd915086df7909e27557083e7bd22d42ccc557fc",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 16045,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 1,
+        "internalName": "IzleMac",
+        "description": "ArdaSpor canl\u0131 spor ve TV kanallar\u0131",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/IzleMac.cs3",
+        "name": "IzleMac"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=https://jetfilmizle.de&sz=%size%",
+        "fileHash": "sha256-1165ea629a34cf02f6b0cd9270633add84fb1aefcd95cd9f274a02a98bf31bfe",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 18682,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 47,
+        "internalName": "JetFilmizle",
+        "description": "Binlerce Film \u0130zleme Se\u00e7ene\u011fiyle En \u0130yi Film \u0130zleme Sitesi",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/JetFilmizle.cs3",
+        "name": "JetFilmizle"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=kultfilmler.net&sz=%size%",
+        "fileHash": "sha256-cc208ec81354add6a47463886b7d6082f1f5dd825d75105b39acdc0caf335390",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 27348,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 16,
+        "internalName": "KultFilmler",
+        "description": "K\u00fclt Filmler \u00f6zenle en iyi filmleri derler ve iyi bir altyaz\u0131l\u0131 film izleme deneyimi sunmay\u0131 ama\u00e7lar",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/KultFilmler.cs3",
+        "name": "KultFilmler"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/MacKeyfi.png",
+        "fileHash": "sha256-f037351e76910d9025ff0ced319e60cdf0e309a1bbc27260951b6d30784878b0",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 79244,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 5,
+        "internalName": "MacKeyfi",
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/MacKeyfi.cs3",
+        "name": "MacKeyfi"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/MahsunSports.jpg",
+        "fileHash": "sha256-c3c17979e584f30e0e2c8807afe75bc75975a074e1fa9199792c8d88039244ec",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 56413,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 4,
+        "internalName": "MahsunSports",
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/MahsunSports.cs3",
+        "name": "MahsunSports"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=rarefilmm.com&sz=%size%",
+        "fileHash": "sha256-b57a70f18f75e4d83e9773785490c0014e1c749570e4a824b8c1f352b5dcf256",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 16603,
+        "status": 1,
+        "language": "en",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 3,
+        "internalName": "RareFilmm",
+        "description": "The Cave of Forgotten Films",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/RareFilmm.cs3",
+        "name": "RareFilmm"
+    },
+    {
+        "iconUrl": "https://rectv.org.tr/wp-content/uploads/2024/11/rectv-modified.webp",
+        "fileHash": "sha256-c6c469906ab9fff2b0f838868d92add9ed1cf13a65662b6991c840b93931f1dc",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 28803,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun",
+            "yusiqo",
+            "inatchii",
+            "JustRelaxable"
+        ],
+        "tvTypes": [
+            "Movie",
+            "Live",
+            "TvSeries"
+        ],
+        "version": 110,
+        "internalName": "RecTV",
+        "description": "RecTv APK, T\u00fcrkiye\u2019deki en pop\u00fcler \u00c7evrimi\u00e7i Medya Ak\u0131\u015f platformlar\u0131ndan biridir. Filmlerin, Canl\u0131 Sporlar\u0131n, Web Dizilerinin ve \u00e7ok daha fazlas\u0131n\u0131n keyfini \u00fccretsiz \u00e7\u0131kar\u0131n.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/RecTV.cs3",
+        "name": "RecTV"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/SelcukSports.png",
+        "fileHash": "sha256-c9cfcccfcd7d3d8241fdac25df8eb262f5a0eded79ea5df7b27113c70be26870",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 52886,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 7,
+        "internalName": "SelcukSports",
+        "description": "\ud83d\udfe2 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/SelcukSports.cs3",
+        "name": "SelcukSports"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.setfilmizle.uk&sz=%size%",
+        "fileHash": "sha256-3d8916925c5566156cb602f222582e4e88a2439927f3fd0d0b80f38798c95ef0",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 25107,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 30,
+        "internalName": "SetFilmIzle",
+        "description": "Setfilmizle sitemizde, donma ya\u015famadan T\u00fcrk\u00e7e dublaj ve altyaz\u0131l\u0131 filmleri ile dizileri muhte\u015fem 1080p full HD kalitesinde izleyebilirsiniz.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/SetFilmIzle.cs3",
+        "name": "SetFilmIzle"
+    },
+    {
+        "iconUrl": "https://mo.ciner.com.tr/assets/images/showtv-logo-400x400.png",
+        "fileHash": "sha256-d7ed8b5fa792fc3f9a9c2c1a609cd817e42a3370b1c03a01ce9a65face2d3e59",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 28195,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "ShowTV",
+        "description": "Show TV dizilerini ve b\u00f6l\u00fcmlerini do\u011frudan ShowTV \u00fczerinden otomatik listeler.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/ShowTV.cs3",
+        "name": "ShowTV"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.sinema.cx&sz=%size%",
+        "fileHash": "sha256-678357ac55fc2470dd56ea84517e0e33489043be3331fb71b4a02f82c9f14ed5",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 16731,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 24,
+        "internalName": "SinemaCX",
+        "description": "G\u00fcncel ve en iyi yabanc\u0131 filmleri y\u00fcksek g\u00f6r\u00fcnt\u00fc kalitesinde, T\u00fcrk\u00e7e dublaj ve altyaz\u0131 se\u00e7enekleriyle filmleri full izleyin.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/SinemaCX.cs3",
+        "name": "SinemaCX"
+    },
+    {
+        "iconUrl": "https://play-lh.googleusercontent.com/brwGNmr7IjA_MKk_TTPs0va10hdKE_bD_a1lnKoiMuCayW98EHpRv55edA6aEoJlmwfX",
+        "fileHash": "sha256-328ed0fa269b37d96d65c2f27a2cb24bc6573984317c5a61669e32aa40a6cc0b",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 26488,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "patr0n",
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries",
+            "Anime"
+        ],
+        "version": 2,
+        "internalName": "Sinewix",
+        "description": "Sinewix | \u00dccretsiz Film - Dizi - Anime \u0130zleme Uygulamas\u0131",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/Sinewix.cs3",
+        "name": "Sinewix"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=spankbang.com&sz=%size%",
+        "fileHash": "sha256-00e0f9340a4ac7f8f483f86ed9da42a74bd38bdbb2da2f11fad4b71d65fe7544",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 23220,
+        "status": 1,
+        "language": "en",
+        "authors": [
+            "coxju",
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "NSFW"
+        ],
+        "version": 1,
+        "internalName": "SpankBang",
+        "description": "(VPN) SpankBang is the hottest free porn site in the world! Cum like never before and explore millions of fresh and free porn videos! Get lit on SpankBang!",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/SpankBang.cs3",
+        "name": "SpankBang"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/Taraftarium24.png",
+        "fileHash": "sha256-eeb1646ecbf80d611d1efc6413788bd6f55a5023d777c9717eab76386964d2a3",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 53379,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 6,
+        "internalName": "Taraftarium24",
+        "description": "\ud83d\udd34 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/Taraftarium24.cs3",
+        "name": "Taraftarium24"
+    },
+    {
+        "iconUrl": "https://patronlig20.cfd/favicon.ico",
+        "fileHash": "sha256-ee26770c310cac2b10498cb7780925614474c09aced1e2f90b612a85bf44fcdc",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 15511,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 3,
+        "internalName": "TEST",
+        "description": "TEST PARS TV",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TEST.cs3",
+        "name": "TEST"
+    },
+    {
+        "iconUrl": "https://www.betmarinotv1101.site/favicon.ico",
+        "fileHash": "sha256-87d9a495638cb2b8842a7bfd3d437a43c0f9428b3c446644b040e4cfd3320843",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 14985,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 1,
+        "internalName": "TEST2",
+        "description": "TEST - Betmarino canl\u0131 kanal ve ma\u00e7 kayna\u011f\u0131",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TEST2.cs3",
+        "name": "TEST2"
+    },
+    {
+        "iconUrl": "https://ane.tizam.org/templates/tizam/images/favicon.png",
+        "fileHash": "sha256-06cecb704631351eac85b405159be3b8a4f9da87c143ec8df2fd827d5bd302f5",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 14416,
+        "status": 1,
+        "language": "ru",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "NSFW"
+        ],
+        "version": 1,
+        "internalName": "Tizam",
+        "description": "Tizam provider",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/Tizam.cs3",
+        "name": "Tizam"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.tlctv.com.tr&sz=%size%",
+        "fileHash": "sha256-11c159249e6d774f0fece6aec46447a1dabb62d2de7b10fc3b45a6e86f34ac3e",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 14407,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 19,
+        "internalName": "TLCtr",
+        "description": "TLC tr",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TLCtr.cs3",
+        "name": "TLCtr"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=tranimaci.com&sz=%size%",
+        "fileHash": "sha256-0e66233b9627ecb1dd9aed52775f80eb6376ac59f58f727a5893d6b92d2e71d5",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 14179,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Anime"
+        ],
+        "version": 17,
+        "internalName": "TRanimaci",
+        "description": "TRanimeci - T\u00fcrkiye'nin Online Anime izleme sitesi.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TRanimaci.cs3",
+        "name": "TRanimaci"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=asyalog.co&sz=%size%",
+        "fileHash": "sha256-1277ed55f07334629b6653d27cc2590575dc4872666706d6a841b101dd7ffe11",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 15704,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 65,
+        "internalName": "TRasyalog",
+        "description": "TRasyalog izleme sitesi.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TRasyalog.cs3",
+        "name": "TRasyalog"
+    },
+    {
+        "iconUrl": "https://www.trdiziizle.tv/logo.png",
+        "fileHash": "sha256-39ae17a9b1646d1dd51eef227c75a074cb334fe411324cc3d24c3687c28b0a25",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 18057,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "TrDiziIzle",
+        "description": "Trdiziizle.tv - T\u00fcrk dizi kayna\u011f\u0131",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TrDiziIzle.cs3",
+        "name": "TrDiziIzle"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.turkanime.co&sz=%size%",
+        "fileHash": "sha256-2cd0f7ef015dbb8e2c54d95a0dcec2db0d61001530012f0e6640bac725c4e6d5",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 19204,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Anime"
+        ],
+        "version": 14,
+        "internalName": "TurkAnime",
+        "description": "T\u00fcrk Anime TV - T\u00fcrkiye'nin Online Anime izleme sitesi.",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TurkAnime.cs3",
+        "name": "TurkAnime"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/support-qr.png",
+        "fileHash": "sha256-41bba55cc1787cd29b015bd8748ff28d41828cbd022cfa26a4864715262ee5e7",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 26167,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Others"
+        ],
+        "version": 1,
+        "internalName": "TurkSporDestek",
+        "description": "made by Wiojelt with love \u00b7 buymeacoffee.com/wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/TurkSporDestek.cs3",
+        "name": "TurkSporDestek"
+    },
+    {
+        "fileHash": "sha256-e0668f2e3e458ce6a87f9519b614be2904b4cbf0965b97314b83e13c7f79cb58",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 16831,
+        "status": 1,
+        "language": "hi",
+        "authors": [
+            "PARS"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 3,
+        "internalName": "UncutMaza",
+        "description": "UncutMaza - Latest / Most Viewed / Longest / Popular / Random",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/UncutMaza.cs3",
+        "name": "UncutMaza"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/punistek/pars-plugins/main/assets/providers/ZbahisTV.png",
+        "fileHash": "sha256-5bcebe63094137b85cc8c9262d1378ebc2d9591a5a2538fed892a06fc62c7d9e",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/punistek/pars-plugins",
+        "fileSize": 79218,
+        "status": 3,
+        "language": "tr",
+        "authors": [
+            
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 5,
+        "internalName": "ZbahisTV",
+        "description": "\ud83d\udd34 TurkSpor kayna\u011f\u0131ndan \u00b7 Wiojelt",
+        "url": "https://raw.githubusercontent.com/punistek/pars-plugins/builds/ZbahisTV.cs3",
+        "name": "ZbahisTV"
+    }
+]
