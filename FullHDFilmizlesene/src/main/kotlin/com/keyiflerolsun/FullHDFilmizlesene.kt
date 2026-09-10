@@ -23,6 +23,14 @@ class FullHDFilmizlesene : MainAPI() {
     override val hasQuickSearch       = false
     override val supportedTypes       = setOf(TvType.Movie)
 
+    private val ua = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 " +
+        "(KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36"
+
+    private fun headers() = mapOf(
+        "User-Agent" to ua,
+        "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7"
+    )
+
     private fun normalizeSiteUrl(url: String): String {
         val value = url.trim()
         if (value.isBlank()) return value
@@ -60,7 +68,7 @@ class FullHDFilmizlesene : MainAPI() {
             else -> "${basePageUrl}/sayfa/${page}"
         }
 
-        val document = app.get(pageUrl).document
+        val document = app.get(pageUrl, headers = headers()).document
         val home = document.select("article.movie-card").mapNotNull { it.toSearchResult() }
 
         Log.d("FHD", "MAIN page=$page url=$pageUrl cards=${home.size}")
@@ -94,31 +102,34 @@ class FullHDFilmizlesene : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val searchUrl = "${mainUrl}/arama?q=${java.net.URLEncoder.encode(query, "UTF-8")}&page=1"
-        val document = app.get(searchUrl).document
+        val document = app.get(searchUrl, headers = headers()).document
 
         return document.select("article.movie-card").mapNotNull { it.toSearchResult() }
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse {
         val canonicalUrl = normalizeSiteUrl(url)
         Log.d("FHD", "load url » $url")
         Log.d("FHD", "load canonical » $canonicalUrl")
 
-        val document = app.get(canonicalUrl).document
+        val document = app.get(canonicalUrl, headers = headers()).document
 
-        val title = document.selectFirst(".film-title-h1")
-            ?.text()
-            ?.trim()
+        val title = document.selectFirst(".film-title-h1")?.text()?.trim()
             ?.takeIf { it.isNotBlank() }
-            ?: return null
-
-        val poster = fixUrlNull(
-            document.selectFirst(".detail-poster img")
-                ?.attr("src")
+            ?: document.selectFirst("meta[property=og:title]")?.attr("content")
+                ?.replace(Regex("""\\s+Full HD.*$"""), "")
+                ?.trim()
                 ?.takeIf { it.isNotBlank() }
-        )
+            ?: throw ErrorLoadingException("Başlık bulunamadı")
+
+        val poster = (
+            document.selectFirst(".detail-poster img")?.attr("src")
+                ?.takeIf { it.isNotBlank() }
+                ?: document.selectFirst("meta[property=og:image]")?.attr("content")
+                    ?.takeIf { it.isNotBlank() }
+        )?.let(::fixUrl)
 
         val year = document
             .selectFirst(".film-facts a[href^='/yil/']")
@@ -345,69 +356,33 @@ class FullHDFilmizlesene : MainAPI() {
         return linkList
     }
 
-    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
-        Log.d("FHD", "data » $data")
-        val canonicalData = normalizeSiteUrl(data)
-        Log.d("FHD", "canonical data » $canonicalData")
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val detailUrl = normalizeSiteUrl(data)
 
-        val document    = app.get(canonicalData).document
-        val videoLinks = getVideoLinks(document)
-        Log.d("FHD", "videoLinks » $videoLinks")
-        if (videoLinks.isEmpty()) return false
+        Log.d("FHD", "WEBVIEW_HANDOFF detail=$detailUrl")
 
-
-        for (videoMap in videoLinks) {
-            for ((key, value) in videoMap) {
-                // Cozulmus scx linki absolute URL ise fixUrlNull'a sokmak gereksiz.
-                // Relative link gelirse eski davranisi koru.
-                val videoUrl = if (
-                    value.startsWith("http://") ||
-                    value.startsWith("https://") ||
-                    value.startsWith("//")
-                ) {
-                    if (value.startsWith("//")) "https:$value" else value
-                } else {
-                    fixUrlNull(value) ?: continue
-                }
-
-                /*
-                 * RapidVid /vx sayfasini HTTP extractor ile cozmeye calismiyoruz.
-                 * PARS'in MainActivity icindeki gizli Chromium resolver'ina teslim
-                 * ediyoruz. Boylece SCX ile bulunan gercek /vx adresi kaybolmadan
-                 * WebView tarafinda acilir; RapidVid'in kendi player'i HLS master
-                 * istegini olusturdugunda PARS_RESOLVER onu yakalar.
-                 */
-                if (Regex("""https?://(?:www\.)?rapidvid\.(?:org|net)/vx/""", RegexOption.IGNORE_CASE).containsMatchIn(videoUrl)) {
-                    Log.d("FHD", "RAPIDVID_WEB_HANDOFF url=$videoUrl detail=$canonicalData")
-
-                    callback.invoke(
-                        newExtractorLink(
-                            source = "RapidVid Web",
-                            name = "RapidVid Web",
-                            url = videoUrl,
-                            type = ExtractorLinkType.M3U8
-                        ) {
-                            this.referer = canonicalData
-                            this.headers = mapOf(
-                                "X-PARS-WEBVIEW" to "1",
-                                "X-PARS-DETAIL-REFERER" to canonicalData,
-                                "Referer" to canonicalData
-                            )
-                            this.quality = Qualities.Unknown.value
-                        }
-                    )
-                    continue
-                }
-
-                Log.d("FHD", "loadExtractor key=$key url=$videoUrl")
-
-                if (videoUrl.contains("turbo.imgz.me")) {
-                    loadExtractor("${key}||${videoUrl}", "${mainUrl}/", subtitleCallback, callback)
-                } else {
-                    loadExtractor(videoUrl, "${mainUrl}/", subtitleCallback, callback)
-                }
+        callback(
+            newExtractorLink(
+                source = name,
+                name = "$name WebView",
+                url = detailUrl,
+                type = ExtractorLinkType.VIDEO
+            ) {
+                this.referer = detailUrl
+                this.quality = Qualities.Unknown.value
+                this.headers = mapOf(
+                    "User-Agent" to ua,
+                    "Referer" to detailUrl,
+                    "X-PARS-WEBVIEW" to "1",
+                    "X-PARS-DETAIL-REFERER" to detailUrl
+                )
             }
-        }
+        )
 
         return true
     }
