@@ -37,19 +37,19 @@ class FullHDFilmizlesene : MainAPI() {
     }
 
     override val mainPage = mainPageOf(
-        "${mainUrl}/"                  to "En Yeni Filmler",
-        "${mainUrl}/tur/aksiyon"       to "Aksiyon",
-        "${mainUrl}/tur/dram"          to "Dram",
-        "${mainUrl}/tur/gerilim"       to "Gerilim",
-        "${mainUrl}/tur/komedi"        to "Komedi",
-        "${mainUrl}/tur/korku"         to "Korku",
-        "${mainUrl}/tur/macera"        to "Macera",
-        "${mainUrl}/tur/fantastik"     to "Fantastik",
-        "${mainUrl}/tur/bilim-kurgu"   to "Bilim Kurgu",
-        "${mainUrl}/tur/gizem"         to "Gizem",
-        "${mainUrl}/tur/romantik"      to "Romantik",
-        "${mainUrl}/tur/suc"           to "Suç",
-        "${mainUrl}/tur/savas"         to "Savaş",
+        "${mainUrl}/"                                      to "En Yeni Filmler",
+        "${mainUrl}/filmizle/aksiyon-filmleri"            to "Aksiyon",
+        "${mainUrl}/filmizle/dram-filmler-izle"           to "Dram",
+        "${mainUrl}/filmizle/gerilim-filmleri"            to "Gerilim",
+        "${mainUrl}/filmizle/komedi-filmleri"             to "Komedi",
+        "${mainUrl}/filmizle/korku-filmleri"              to "Korku",
+        "${mainUrl}/filmizle/macera-filmleri"             to "Macera",
+        "${mainUrl}/filmizle/fantastik-filmler"           to "Fantastik",
+        "${mainUrl}/filmizle/bilim-kurgu-filmleri"        to "Bilim Kurgu",
+        "${mainUrl}/filmizle/gizem-filmleri"              to "Gizem",
+        "${mainUrl}/filmizle/romantik-filmler"            to "Romantik",
+        "${mainUrl}/filmizle/suc-filmleri"                to "Suç",
+        "${mainUrl}/filmizle/savas-filmleri"              to "Savaş",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -61,7 +61,7 @@ class FullHDFilmizlesene : MainAPI() {
         }
 
         val document = app.get(pageUrl).document
-        val home = document.select("article.movie-card").mapNotNull { it.toSearchResult() }
+        val home = document.select(".list .film").mapNotNull { it.toSearchResult() }
 
         Log.d("FHD", "MAIN page=$page url=$pageUrl cards=${home.size}")
         return newHomePageResponse(request.name, home)
@@ -73,12 +73,13 @@ class FullHDFilmizlesene : MainAPI() {
             ?: return null
 
         val href = fixUrlNull(
-            this.selectFirst("a.mc-link")?.attr("href")
+            this.selectFirst("a.tt[href]")?.attr("href")
                 ?.takeIf { it.isNotBlank() }
-                ?: this.selectFirst("a")?.attr("href")
+                ?: this.selectFirst("a[href]")?.attr("href")
         ) ?: return null
 
-        val image = this.selectFirst("img.mc-afis")
+        val image = this.selectFirst("img.mafis")
+            ?: this.selectFirst("img.afis")
             ?: this.selectFirst("img")
 
         val posterUrl = fixUrlNull(
@@ -96,7 +97,7 @@ class FullHDFilmizlesene : MainAPI() {
         val searchUrl = "${mainUrl}/arama?q=${java.net.URLEncoder.encode(query, "UTF-8")}&page=1"
         val document = app.get(searchUrl).document
 
-        return document.select("article.movie-card").mapNotNull { it.toSearchResult() }
+        return document.select(".list .film").mapNotNull { it.toSearchResult() }
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
@@ -164,7 +165,7 @@ class FullHDFilmizlesene : MainAPI() {
             .map { Actor(it) }
 
         val recommendations = document
-            .select("article.movie-card")
+            .select(".list .film")
             .mapNotNull { it.toSearchResult() }
             .filter { it.url != canonicalUrl }
             .distinctBy { it.url }
