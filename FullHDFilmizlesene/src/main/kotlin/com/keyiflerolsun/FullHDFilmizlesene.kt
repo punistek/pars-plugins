@@ -109,47 +109,92 @@ class FullHDFilmizlesene : MainAPI() {
 
         val document = app.get(canonicalUrl).document
 
-        val title = document.selectFirst(".film-title-h1")
-            ?.text()
+        // Site detail HTML'i eski ".film-title-h1" yapısından değişti.
+        // Başlığı tek bir kırılgan selector'a bağlama; gerçek film sayfasındaki
+        // H1 ve standart OpenGraph/HTML title alanlarını fallback olarak kullan.
+        val titleCandidates = listOfNotNull(
+            document.selectFirst(".film-title-h1")?.text(),
+            document.selectFirst("h1")?.text(),
+            document.selectFirst("meta[property=og:title]")?.attr("content"),
+            document.selectFirst("meta[name=twitter:title]")?.attr("content"),
+            document.title(),
+        ).map { it.trim() }.filter { it.isNotBlank() }
+
+        val title = titleCandidates.firstOrNull()
+            ?.replace(Regex("""\s*(?:[-|]\s*)?(?:Full\s*HD\s*)?Film\s*(?:izle|izlesene).*$""", RegexOption.IGNORE_CASE), "")
             ?.trim()
             ?.takeIf { it.isNotBlank() }
-            ?: return null
+            ?: run {
+                Log.e("FHD", "load title bulunamadı url=$canonicalUrl h1=${document.selectFirst("h1")?.text()} htmlTitle=${document.title()}")
+                return null
+            }
+
+        val posterElement = document.selectFirst(".detail-poster img")
+            ?: document.selectFirst(".poster img")
+            ?: document.selectFirst(".film-afis img")
+            ?: document.selectFirst("article img")
+            ?: document.selectFirst("main img")
 
         val poster = fixUrlNull(
-            document.selectFirst(".detail-poster img")
-                ?.attr("src")
-                ?.takeIf { it.isNotBlank() }
+            document.selectFirst("meta[property=og:image]")?.attr("content")?.takeIf { it.isNotBlank() }
+                ?: posterElement?.attr("data-src")?.takeIf { it.isNotBlank() }
+                ?: posterElement?.attr("data-original")?.takeIf { it.isNotBlank() }
+                ?: posterElement?.attr("src")?.takeIf { it.isNotBlank() }
         )
 
+        val pageText = document.body()?.text().orEmpty()
+
         val year = document
-            .selectFirst(".film-facts a[href^='/yil/']")
+            .selectFirst("a[href*='/yil/'], a[href*='/year/']")
             ?.text()
             ?.trim()
             ?.toIntOrNull()
+            ?: Regex("""\b(19\d{2}|20\d{2})\b""")
+                .find(pageText)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.toIntOrNull()
 
-        val description = document
-            .selectFirst(".detail-synopsis")
-            ?.text()
-            ?.trim()
+        val description = listOfNotNull(
+            document.selectFirst(".detail-synopsis")?.text(),
+            document.selectFirst(".film-aciklama")?.text(),
+            document.selectFirst(".description")?.text(),
+            document.selectFirst("meta[name=description]")?.attr("content"),
+            document.selectFirst("meta[property=og:description]")?.attr("content"),
+        ).map { it.trim() }.firstOrNull { it.isNotBlank() }
 
         val tags = document
-            .select(".film-facts a[href^='/tur/']")
+            .select("a[href*='/filmizle/'], a[href*='/tur/']")
             .map { it.text().trim() }
-            .filter { it.isNotBlank() }
+            .filter {
+                it.isNotBlank() &&
+                    !it.equals("Film izle", ignoreCase = true) &&
+                    it.length <= 40
+            }
             .distinct()
+            .take(12)
 
-        val score = document
-            .selectFirst(".ib-score")
-            ?.text()
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
+        val scoreText = listOfNotNull(
+            document.selectFirst(".ib-score")?.text(),
+            document.selectFirst("[class*=imdb]")?.text(),
+            document.selectFirst("[class*=rating]")?.text(),
+        ).joinToString(" ")
+
+        val score = Regex("""\b(?:10(?:\.0)?|[0-9](?:\.[0-9])?)\b""")
+            .find(scoreText.replace(',', '.'))
+            ?.value
             ?.let { Score.from10(it) }
 
         val duration = Regex("""(\d{2,3})\s*(?:dk|dakika)""", RegexOption.IGNORE_CASE)
-            .find(document.selectFirst(".film-facts")?.text().orEmpty())
+            .find(pageText)
             ?.groupValues
             ?.getOrNull(1)
             ?.toIntOrNull()
+
+        Log.d(
+            "FHD",
+            "load parsed title=$title poster=${poster != null} year=$year duration=$duration tags=${tags.size}"
+        )
 
         val trailer = Regex(
             """"(?:embedUrl|trailer)"\s*:\s*"([^"]+)"""",
