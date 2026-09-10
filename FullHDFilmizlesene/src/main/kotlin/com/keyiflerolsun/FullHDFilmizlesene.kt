@@ -370,8 +370,6 @@ class FullHDFilmizlesene : MainAPI() {
                     fixUrlNull(value) ?: continue
                 }
 
-                Log.d("FHD", "loadExtractor key=$key url=$videoUrl")
-
                 /*
                  * RapidVid /vx sayfasini HTTP extractor ile cozmeye calismiyoruz.
                  * PARS'in MainActivity icindeki gizli Chromium resolver'ina teslim
@@ -379,7 +377,7 @@ class FullHDFilmizlesene : MainAPI() {
                  * WebView tarafinda acilir; RapidVid'in kendi player'i HLS master
                  * istegini olusturdugunda PARS_RESOLVER onu yakalar.
                  */
-                if (videoUrl.contains("rapidvid.org", ignoreCase = true)) {
+                if (Regex("""https?://(?:www\.)?rapidvid\.(?:org|net)/vx/""", RegexOption.IGNORE_CASE).containsMatchIn(videoUrl)) {
                     Log.d("FHD", "RAPIDVID_WEB_HANDOFF url=$videoUrl detail=$canonicalData")
 
                     callback.invoke(
@@ -400,6 +398,8 @@ class FullHDFilmizlesene : MainAPI() {
                     )
                     continue
                 }
+
+                Log.d("FHD", "loadExtractor key=$key url=$videoUrl")
 
                 if (videoUrl.contains("turbo.imgz.me")) {
                     loadExtractor("${key}||${videoUrl}", "${mainUrl}/", subtitleCallback, callback)
