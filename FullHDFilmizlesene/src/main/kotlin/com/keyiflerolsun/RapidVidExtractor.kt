@@ -1,6 +1,13 @@
 // ! RapidVidExtractor.kt
-// RapidVid /vod sayfasindaki window._p8 verisini cozer.
-// Akis: /vx -> /vod -> window._p8 -> decode -> JSON(vk/cm/tm) -> HLS master
+// RapidVid guncel akis:
+// FullHD SCX -> https://rapidvid.org/vx/v1x...
+// /vx sayfasi -> window._p8 -> decode -> JSON(vk/cm/tm)
+// core.min JS -> H = tierSupported ? tm : cm -> JWPlayer HLS source
+//
+// NOT:
+// /vx adresini artik /vod/ adresine CEVIRMIYORUZ.
+// Tarayicida /vod/v1x...?c=1 istegi player PLAY sonrasi kontrol/telemetri amacli atiliyor.
+// Asil player bootstrap verisi /vx sayfasindaki window._p8 icinde.
 
 package com.keyiflerolsun
 
@@ -23,42 +30,82 @@ open class RapidVid : ExtractorApi() {
         callback: (ExtractorLink) -> Unit
     ) {
         val extRef = referer ?: "https://www.fullhdfilmizlesene.now/"
+        val playerUrl = normalizePlayerUrl(url)
 
-        // FullHD tarafindan gelen URL genelde:
-        // https://rapidvid.org/vx/v1x........
-        // Yeni player verisi /vod/ sayfasinda window._p8 icinde.
-        val vodUrl = normalizeVodUrl(url)
+        Log.d("Kekik_RapidVid", "input     » $url")
+        Log.d("Kekik_RapidVid", "playerUrl » $playerUrl")
+        Log.d("Kekik_RapidVid", "referer   » $extRef")
 
-        Log.d("Kekik_RapidVid", "input   » $url")
-        Log.d("Kekik_RapidVid", "vodUrl  » $vodUrl")
-        Log.d("Kekik_RapidVid", "referer » $extRef")
-
+        /*
+         * Kritik:
+         * Eski kod /vx/ -> /vod/ yapiyordu.
+         *
+         * Guncel RapidVid core JS ise decoded window._p8 icindeki:
+         *   cm = t.cm
+         *   tm = t.tm
+         * degerlerini player source olarak kullaniyor.
+         *
+         * /vod/v1x{vk}?c=1 istegi core JS tarafinda PLAY sonrasi atiliyor.
+         * Bu nedenle bootstrap HTML icin orijinal /vx/ sayfasini okumaliyiz.
+         */
         val response = app.get(
-            vodUrl,
+            playerUrl,
             referer = extRef,
             headers = mapOf(
-                "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Cache-Control" to "no-cache",
+                "Pragma" to "no-cache",
+                "Upgrade-Insecure-Requests" to "1",
+                "User-Agent" to DESKTOP_UA
             )
         )
 
         val html = response.text
 
+        Log.d(
+            "Kekik_RapidVid",
+            "HTML status=${response.code} len=${html.length} finalUrl=${response.url}"
+        )
+
         if (html.isBlank()) {
             throw ErrorLoadingException("RapidVid HTML bos geldi")
         }
 
-        if (
-            html.contains("Just a moment", ignoreCase = true) ||
-            html.contains("cf-chl-", ignoreCase = true)
-        ) {
-            throw ErrorLoadingException("RapidVid Cloudflare challenge dondu")
+        if (isCloudflareChallenge(html)) {
+            throw ErrorLoadingException(
+                "RapidVid /vx Cloudflare challenge dondu"
+            )
         }
 
-        // Eski/acik altyazi yapisi varsa kaybetme.
+        if (html.contains("403 Forbidden", ignoreCase = true)) {
+            throw ErrorLoadingException(
+                "RapidVid /vx 403 Forbidden dondu"
+            )
+        }
+
+        // Acik altyazi yapisi HTML icinde varsa kaybetme.
         extractSubtitles(html, subtitleCallback)
 
+        /*
+         * Guncel core.min.2026090601.js'in ilk satirlari hala:
+         *
+         * JSON.parse(
+         *   atob(
+         *     ... window._p8 ...
+         *   )
+         * )
+         *
+         * kullaniyor. Yani decode algoritmamiz dogru;
+         * sorun daha once yanlis /vod sayfasini okumamizdi.
+         */
         val p8 = extractP8(html)
-            ?: throw ErrorLoadingException("RapidVid window._p8 bulunamadi")
+            ?: run {
+                logHtmlClues(html)
+                throw ErrorLoadingException(
+                    "RapidVid /vx HTML geldi fakat window._p8 bulunamadi"
+                )
+            }
 
         Log.d("Kekik_RapidVid", "_p8 bulundu » len=${p8.length}")
 
@@ -66,12 +113,14 @@ open class RapidVid : ExtractorApi() {
             decodeP8(p8)
         } catch (e: Exception) {
             Log.e("Kekik_RapidVid", "_p8 decode hatasi", e)
-            throw ErrorLoadingException("RapidVid _p8 decode edilemedi: ${e.message}")
+            throw ErrorLoadingException(
+                "RapidVid _p8 decode edilemedi: ${e.message}"
+            )
         }
 
         Log.d(
             "Kekik_RapidVid",
-            "_p8 JSON » ${decodedJson.take(500)}"
+            "_p8 JSON » ${decodedJson.take(900)}"
         )
 
         val data = try {
@@ -85,21 +134,30 @@ open class RapidVid : ExtractorApi() {
         val cm = data.optString("cm", "").trim()
         val tm = data.optString("tm", "").trim()
 
-        Log.d("Kekik_RapidVid", "vkey » $vkey")
-        Log.d("Kekik_RapidVid", "cm   » ${safeUrlForLog(cm)}")
-        Log.d("Kekik_RapidVid", "tm   » ${safeUrlForLog(tm)}")
+        // core JS'de tier-ready flag: D = !!t.tr
+        val tierReady = data.optBoolean("tr", false)
+
+        Log.d("Kekik_RapidVid", "vkey      » $vkey")
+        Log.d("Kekik_RapidVid", "tierReady » $tierReady")
+        Log.d("Kekik_RapidVid", "cm        » ${safeUrlForLog(cm)}")
+        Log.d("Kekik_RapidVid", "tm        » ${safeUrlForLog(tm)}")
 
         /*
-         * RapidVid JS:
+         * Guncel core JS:
          *
-         *   var G = t.cm || "";
-         *   var J = t.tm || "";
-         *   ...
-         *   var W = Z ? J : G;
-         *   sources: [{ file: W, type: "hls" }]
+         *   var G = t.cm || ""
+         *   var D = !!t.tr
+         *   var J = t.tm || ""
+         *   var L = D && codec-support-check
+         *   var H = L ? J : G
+         *   M.sources = [{ file: H, type: "hls" }]
          *
-         * Tarayicida cm/tm ikisi de HLS master olarak kullanilabiliyor.
-         * Ilk tercih cm. Bos/uygunsuzsa tm fallback.
+         * Android Media3 tarafinda tarayici codec probe'unu aynen
+         * calistirmiyoruz. Guvenli tercih:
+         *   1) cm varsa cm
+         *   2) cm yoksa tm
+         *
+         * Boylece eski calisan davranisi koruyoruz.
          */
         val masterUrl = when {
             isHttpUrl(cm) -> cm
@@ -121,11 +179,11 @@ open class RapidVid : ExtractorApi() {
                 url = masterUrl,
                 type = ExtractorLinkType.M3U8
             ) {
-                // CDN isteklerinde tarayicida Origin rapidvid.org goruldu.
                 this.referer = "$mainUrl/"
                 this.headers = mapOf(
                     "Origin" to mainUrl,
-                    "Referer" to "$mainUrl/"
+                    "Referer" to "$mainUrl/",
+                    "User-Agent" to DESKTOP_UA
                 )
                 this.quality = Qualities.Unknown.value
             }
@@ -133,12 +191,12 @@ open class RapidVid : ExtractorApi() {
     }
 
     /**
-     * /vx/v1x... -> /vod/v1x...
+     * RapidVid player URL'sini normalize eder.
      *
-     * /vod zaten gelirse aynen kullanir.
-     * rapidvid.net gelirse rapidvid.org'a tasir.
+     * Kritik degisiklik:
+     * /vx/ artik /vod/ yapilmaz.
      */
-    private fun normalizeVodUrl(input: String): String {
+    private fun normalizePlayerUrl(input: String): String {
         var out = input.trim()
 
         if (out.startsWith("//")) {
@@ -150,54 +208,48 @@ open class RapidVid : ExtractorApi() {
             .replace("https://rapidvid.net", mainUrl)
             .replace("https://www.rapidvid.net", mainUrl)
 
-        out = out.replace("/vx/", "/vod/")
-
         return out
     }
 
     /**
-     * RapidVid HTML:
-     *
-     * window._p8 = "....";
-     *
-     * Tek veya cift tirnak desteklenir.
+     * window._p8 = "...."
+     * window._p8='....'
+     * bosluk/yeni satir varyasyonlarini destekler.
      */
     private fun extractP8(html: String): String? {
-        val doubleQuoted = Regex(
-            """window\._p8\s*=\s*"([^"]+)""""
-        ).find(html)?.groupValues?.getOrNull(1)
+        val patterns = listOf(
+            Regex("""window\s*\.\s*_p8\s*=\s*"([^"]+)""""),
+            Regex("""window\s*\.\s*_p8\s*=\s*'([^']+)'"""),
+            Regex("""(?:window\.)?_p8\s*=\s*"([^"]+)""""),
+            Regex("""(?:window\.)?_p8\s*=\s*'([^']+)'""")
+        )
 
-        if (!doubleQuoted.isNullOrBlank()) {
-            return doubleQuoted
+        for (regex in patterns) {
+            val value = regex.find(html)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.trim()
+
+            if (!value.isNullOrBlank()) {
+                return value
+            }
         }
 
-        val singleQuoted = Regex(
-            """window\._p8\s*=\s*'([^']+)'"""
-        ).find(html)?.groupValues?.getOrNull(1)
-
-        return singleQuoted?.takeIf { it.isNotBlank() }
+        return null
     }
 
     /**
-     * RapidVid sayfasindaki f(window._p8) fonksiyonunun Kotlin karsiligi.
+     * RapidVid core JS'teki decode fonksiyonunun Kotlin karsiligi:
      *
-     * JS mantigi:
-     *
-     * 1. _p8 stringini ters cevir
-     * 2. atob(...)
-     * 3. Her karakter icin:
-     *      key = "K9L"[i % 3]
-     *      shift = key.charCodeAt(0) % 5 + 1
-     *      charCode - shift
-     * 4. Olusan stringe tekrar atob(...)
-     * 5. Sonuc JSON: vk / cm / tm ...
+     * 1) _p8 ters cevrilir
+     * 2) atob
+     * 3) K9L dongusel anahtariyla charCode shift geri alinir
+     * 4) tekrar atob
+     * 5) JSON
      */
     private fun decodeP8(encoded: String): String {
-        if (encoded.isBlank()) {
-            throw IllegalArgumentException("_p8 bos")
-        }
+        require(encoded.isNotBlank()) { "_p8 bos" }
 
-        // JS atob() binary-string mantigi icin ISO-8859-1 kullaniliyor.
         val firstBytes = Base64.decode(
             normalizeBase64(encoded.reversed()),
             Base64.DEFAULT
@@ -239,6 +291,42 @@ open class RapidVid : ExtractorApi() {
         }
 
         return out
+    }
+
+    private fun isCloudflareChallenge(html: String): Boolean {
+        return html.contains("Just a moment", ignoreCase = true) ||
+            html.contains("cf-chl-", ignoreCase = true) ||
+            html.contains("/cdn-cgi/challenge-platform/", ignoreCase = true) ||
+            html.contains("Enable JavaScript and cookies to continue", ignoreCase = true)
+    }
+
+    /**
+     * _p8 bulunamazsa tahmin etmek yerine bize bir sonraki test icin
+     * kanit verecek ipuclari logla.
+     */
+    private fun logHtmlClues(html: String) {
+        val clues = listOf(
+            "window._p8",
+            "_p8",
+            "core.min.",
+            "jwplayer",
+            "Just a moment",
+            "cf-chl-",
+            "403 Forbidden"
+        )
+
+        val found = clues.filter {
+            html.contains(it, ignoreCase = true)
+        }
+
+        val compact = html
+            .replace(Regex("""\s+"""), " ")
+            .take(700)
+
+        Log.w(
+            "Kekik_RapidVid",
+            "HTML_CLUES found=$found preview=$compact"
+        )
     }
 
     private fun extractSubtitles(
@@ -285,7 +373,7 @@ open class RapidVid : ExtractorApi() {
 
         val schemeEnd = value.indexOf("://")
         if (schemeEnd == -1) {
-            return value.take(80)
+            return value.take(100)
         }
 
         val pathStart = value.indexOf('/', schemeEnd + 3)
@@ -299,5 +387,12 @@ open class RapidVid : ExtractorApi() {
         } else {
             value.substring(0, nextSlash) + "/..."
         }
+    }
+
+    companion object {
+        private const val DESKTOP_UA =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/153.0.0.0 Safari/537.36"
     }
 }
